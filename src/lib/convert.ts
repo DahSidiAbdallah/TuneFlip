@@ -6,6 +6,7 @@ import pLimit from 'p-limit';
 import chalk from 'chalk';
 import { createConverter } from './ffmpeg.js';
 import cliProgress from 'cli-progress';
+import { randomBytes } from 'node:crypto';
 
 export type ConvertOptions = {
   outDir: string;
@@ -109,6 +110,11 @@ function detectFromFilename(fileBase: string): { title?: string; artist?: string
   return {};
 }
 
+function tempCoverPath(outDir: string, suffix: string) {
+  const rand = randomBytes(6).toString('hex');
+  return join(outDir, `.tf-${rand}${suffix}`);
+}
+
 export async function convertPaths(inputs: string[], opts: ConvertOptions): Promise<ConvertResult[]> {
   // Make concurrency configurable and safe for very large queues; apply throttle caps
   const baseConc = Math.max(1, Math.min(64, opts.concurrency ?? Math.max(1, Math.floor(os.cpus().length / 2))));
@@ -191,13 +197,14 @@ export async function convertPaths(inputs: string[], opts: ConvertOptions): Prom
       }
       // Auto-detect tags via ffprobe and extract cover if available
       let coverPath = opts.metadata?.coverImagePath;
+      let tempCover: string | undefined;
       let autoTags: Record<string,string> = {};
       try {
         const { tags, attachedPicStreamIndex } = await (conv as any).probeTags?.(input) || { tags: {} };
         autoTags = tags || {};
         if (!coverPath && typeof attachedPicStreamIndex === 'number') {
-          const tmp = join(outDir, `${base}.cover.attached.jpg`);
-          try { await (conv as any).extractAttachedPicture?.(input, attachedPicStreamIndex, tmp); coverPath = tmp; } catch {}
+          const tmp = tempCoverPath(outDir, '.cover.attached.jpg');
+          try { await (conv as any).extractAttachedPicture?.(input, attachedPicStreamIndex, tmp); if (fs.existsSync(tmp)) { coverPath = tmp; tempCover = tmp; } } catch {}
         }
       } catch {}
       // Filename-based guess if enabled
@@ -217,8 +224,8 @@ export async function convertPaths(inputs: string[], opts: ConvertOptions): Prom
             try { if (new RegExp(r.pattern, 'i').test(base)) { tSec = r.timeSec; break; } } catch {}
           }
         }
-        const tmp = join(outDir, `${base}.cover.jpg`);
-        try { await conv.extractFrame(input, tSec, tmp); coverPath = tmp; }
+        const tmp = tempCoverPath(outDir, '.cover.jpg');
+        try { await conv.extractFrame(input, tSec, tmp); if (fs.existsSync(tmp)) { coverPath = tmp; tempCover = tmp; } }
         catch {/* ignore */}
       }
 
@@ -264,6 +271,7 @@ export async function convertPaths(inputs: string[], opts: ConvertOptions): Prom
         catch (e) { lastErr = e; if (opts.retry?.delayMs) await new Promise(r=>setTimeout(r, opts.retry!.delayMs)); }
       }
       if (!okRun) throw lastErr;
+      if (tempCover) { try { fs.unlinkSync(tempCover); } catch {} }
       if (barInst) { barInst.update(100); barInst.stop(); }
       if (opts.onFileDone) opts.onFileDone({ input, output: out, ok: true });
       return { input, output: out, ok: true };
