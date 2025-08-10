@@ -1,0 +1,546 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TuneFlip</title>
+    <style>
+      :root {
+        --primary-bg: #e6f5d7; /* deeper greenish background */
+        --header-bg: #d0f0b7; /* deeper header */
+        --card-bg: #fdf6e3; /* warm, but not too bright */
+        --border: #ffd600; /* strong yellow border */
+        --accent: #43b97f; /* deeper green for buttons */
+        --accent-dark: #ff9800; /* strong orange for secondary */
+        --accent-yellow: #ffe066; /* bright yellow for highlights */
+        --text: #222; /* very dark text for contrast */
+        --text-muted: #7c7c5c;
+        --badge-bg: #fffbe6;
+        --input-bg: #f7fbe7;
+      }
+      body {
+        font-family: system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+        margin: 0;
+        background: var(--primary-bg);
+        color: var(--text);
+      }
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 18px;
+        background: var(--header-bg);
+        border-bottom: 2px solid var(--border);
+      }
+      .brand {
+        font-weight: 700;
+        color: var(--accent-dark);
+        letter-spacing: 1px;
+        font-size: 1.5em;
+        text-shadow: 0 2px 8px #ffd60033;
+      }
+      .container {
+        padding: 18px;
+        max-width: 900px;
+        margin: 0 auto;
+      }
+      .card {
+        background: var(--card-bg);
+        border: 1.5px solid var(--border);
+        border-radius: 14px;
+        padding: 16px;
+        margin-bottom: 16px;
+        box-shadow: 0 2px 12px #ffd60022;
+      }
+      .row { display: flex; gap: 10px; flex-wrap: wrap; }
+  label { display: block; font-size: 12px; color: var(--accent-dark); margin-bottom: 6px; font-weight: 600; }
+      input[type=text],input[type=number],select {
+        background: var(--input-bg);
+        border: 1.5px solid var(--border);
+        border-radius: 8px;
+        padding: 10px;
+        color: var(--text);
+        width: 100%;
+        font-weight: 500;
+      }
+      .btn {
+        background: var(--accent);
+        border: none;
+        color: #fff;
+        padding: 10px 14px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: background 0.2s, color 0.2s;
+        box-shadow: 0 2px 8px #43b97f22;
+      }
+      .btn.secondary { background: var(--accent-dark); color: #fff; }
+      .btn:hover { background: var(--accent-dark); color: #fff; }
+      .badge {
+        background: var(--accent-yellow);
+        border-radius: 999px;
+        padding: 2px 8px;
+        font-size: 12px;
+        color: #b36b00;
+        font-weight: 700;
+        border: 1px solid #ffd600;
+      }
+      .small { font-size: 12px; color: #b36b00; }
+  progress { width: 100%; height: 10px; accent-color: var(--accent-dark); }
+  .file { font-family: ui-monospace,Menlo,Consolas,monospace; font-size: 12px; color: #ff9800; }
+      .grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 12px; }
+      .row-inline { display: flex; gap: 8px; align-items: flex-end; }
+      /* Modes */
+      body[data-mode="simple"] .advanced{display:none}
+      body[data-mode="advanced"] .simpleOnly{display:none}
+    </style>
+  </head>
+  <body>
+    <header>
+  <div class="brand">TuneFlip</div>
+      <div class="row-inline">
+  <!-- Theme switcher removed -->
+        <label class="badge" style="background:#111827;border:1px solid #374151">Mode</label>
+        <select id="modeSel"><option value="simple" selected>Simple</option><option value="advanced">Advanced</option></select>
+      </div>
+    </header>
+    <div class="container">
+
+      <div id="diag" class="card small" style="display:none"></div>
+
+      <!-- Files -->
+      <div class="card">
+        <div class="row-inline">
+          <button class="btn" id="pickFiles">Select files</button>
+          <div id="filesCount" class="badge">0 files</div>
+        </div>
+        <div id="dropZone" class="small" style="margin-top:8px;border:1px dashed #374151;border-radius:8px;padding:16px;text-align:center">Drop files here</div>
+        <div id="files" style="margin-top:8px"></div>
+      </div>
+
+      <!-- Simple controls -->
+      <div class="card simpleOnly">
+        <div class="grid">
+          <div>
+            <label>Output folder</label>
+            <div class="row-inline">
+              <input type="text" id="outDir" placeholder="out" value="out" />
+              <button class="btn secondary" id="pickOut">Browse</button>
+            </div>
+          </div>
+          <div>
+            <label>Quality</label>
+            <select id="quality">
+              <option value="std">Standard (192 kbps)</option>
+              <option value="high">High (256 kbps)</option>
+              <option value="vbr2">Very High (VBR 2)</option>
+              <option value="custom">Custom (use Advanced)</option>
+            </select>
+          </div>
+          <div>
+            <label>Parallel conversions</label>
+            <input type="number" id="simpleConcurrency" value="4" min="1" />
+          </div>
+          <div>
+            <label>Resource mode</label>
+            <select id="throttle">
+              <option value="off">Max speed</option>
+              <option value="medium">Balanced</option>
+              <option value="low">Low impact</option>
+            </select>
+          </div>
+        </div>
+        <div class="row-inline" style="margin-top:10px">
+          <button class="btn" id="start">Convert</button>
+          <button class="btn secondary" id="saveSettings">Save settings</button>
+          <button class="btn secondary" id="loadSettings">Load settings</button>
+          <div id="summary" class="badge">Ready</div>
+        </div>
+      </div>
+
+      <!-- Advanced controls -->
+      <div class="card advanced">
+        <details id="advanced">
+          <summary style="cursor:pointer">Advanced options</summary>
+          <div class="grid" style="margin-top:12px">
+            <div><label>Bitrate (kbps)</label><input type="number" id="bitrate" placeholder="192" /></div>
+            <div><label>VBR (0-9)</label><input type="number" id="vbr" min="0" max="9" /></div>
+            <div><label>Sample rate (Hz)</label><input type="number" id="samplerate" placeholder="44100" /></div>
+            <div><label>Channels</label><input type="number" id="channels" placeholder="2" /></div>
+            <div><label>Trim (start[-end] sec)</label><input type="text" id="trim" placeholder="5-65" /></div>
+            <div><label>Concurrency</label><input type="number" id="concurrency" placeholder="4" value="4" /></div>
+            <div><label>&nbsp;</label>
+              <div class="small">
+                <label><input type="checkbox" id="loudnorm" /> Loudness normalize</label><br />
+                <label><input type="checkbox" id="keepStructure" /> Keep folder structure</label><br />
+                <label><input type="checkbox" id="overwrite" /> Overwrite</label><br />
+                <label><input type="checkbox" id="dryRun" /> Dry run</label>
+              </div>
+            </div>
+            <div>
+              <label>Auto metadata</label>
+              <div class="small">
+                <label><input type="checkbox" id="autoMeta" checked /> Detect title/artist/album/cover</label><br />
+                <label><input type="checkbox" id="preferDetected" /> Prefer detected over manual</label>
+              </div>
+            </div>
+            <div>
+              <label>Output template</label>
+              <div class="row-inline">
+                <input type="text" id="template" placeholder="{basename}.mp3" style="flex:1" />
+                <select id="tokenSel">
+                  <option value="">Insert token…</option>
+                  <option value="{basename}">{basename}</option>
+                  <option value="{ext}">{ext}</option>
+                  <option value="{bitrate}">{bitrate}</option>
+                  <option value="{vbr}">{vbr}</option>
+                </select>
+              </div>
+              <small class="file">Tokens: {basename} {ext} {bitrate} {vbr}</small>
+            </div>
+            <div>
+              <label>Auto cover</label>
+              <div class="row-inline">
+                <label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="autoCoverEnabled" /> Enable</label>
+                <input type="number" id="autoCoverTime" placeholder="5" title="Time (sec)" />
+              </div>
+            </div>
+            <div><label>ID3: Title</label><input type="text" id="id3Title" /></div>
+            <div><label>ID3: Artist</label><input type="text" id="id3Artist" /></div>
+            <div><label>ID3: Album</label><input type="text" id="id3Album" /></div>
+            <div><label>ID3: Genre</label><input type="text" id="id3Genre" /></div>
+            <div><label>ID3: Date</label><input type="text" id="id3Date" /></div>
+            <div><label>ID3: Track</label><input type="text" id="id3Track" /></div>
+            <div><label>ID3: Comment</label><input type="text" id="id3Comment" /></div>
+            <div><label>Cover image</label><input type="text" id="coverPath" placeholder="C:\\path\\cover.jpg" /></div>
+            <div>
+              <label>Retry</label>
+              <div class="row-inline">
+                <input type="number" id="retryAttempts" placeholder="Retries" value="1" style="width:100px" />
+                <input type="number" id="retryDelay" placeholder="Delay ms" value="0" style="width:120px" />
+              </div>
+            </div>
+            <div>
+              <label>Cover frame time (sec)</label>
+              <input type="number" id="coverFrameSec" placeholder="5" />
+            </div>
+            <div>
+              <label>Cover frame rules</label>
+              <div class="small">Regex pattern => time (sec), one per line. Example: ^Live => 60</div>
+              <textarea id="coverFrameRules" rows="4" style="width:100%; background:#0f131a; color:#e6e6e6; border:1px solid #1f2937; border-radius:8px" placeholder="^Intro => 30"></textarea>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:12px">
+            <div class="row-inline">
+              <strong style="flex:1">Presets</strong>
+              <input type="text" id="presetName" placeholder="My preset" style="flex:2" />
+              <button class="btn secondary" id="savePreset">Save</button>
+              <button class="btn secondary" id="deletePreset">Delete</button>
+              <select id="presetSelect" style="flex:2"></select>
+              <button class="btn" id="loadPreset">Load</button>
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <div class="card">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px">
+          <label class="small">Resume queue on next launch</label>
+          <input type="checkbox" id="resumeToggle" checked />
+          <button class="btn secondary" id="resumeClear">Clear queue</button>
+          <div id="resumeInfo" class="small"></div>
+        </div>
+        <div id="progressList"></div>
+      </div>
+
+    </div>
+    <script>
+      const $ = (s)=>document.querySelector(s);
+      const files = [];
+      const list = $('#files');
+      const progressList = $('#progressList');
+      const logs = [];
+
+      // Toasts
+      const toaster = document.createElement('div');
+      toaster.style.position='fixed'; toaster.style.bottom='20px'; toaster.style.right='20px'; toaster.style.zIndex='9999';
+      document.body.appendChild(toaster);
+      function toast(msg) {
+        const div = document.createElement('div');
+        div.textContent = msg;
+        div.style.background = '#fffbe6'; // light yellow for visibility
+        div.style.color = '#222'; // dark text for contrast
+        div.style.border = '1.5px solid #ffd600';
+        div.style.padding = '8px 12px';
+        div.style.borderRadius = '8px';
+        div.style.marginTop = '8px';
+        div.style.boxShadow = '0 2px 8px #ffd60033';
+        div.style.fontWeight = '600';
+        toaster.appendChild(div);
+        setTimeout(() => div.remove(), 3000);
+      }
+
+  function updateFiles() { const cnt = files.length; $('#filesCount').textContent = cnt + ' file' + (cnt!==1?'s':''); list.innerHTML = files.map(f => `<div class="file">${f}</div>`).join(''); }
+
+      // Mode & Theme
+  // Theme switching removed; will use static color scheme matching logo
+      const modeSel = document.getElementById('modeSel');
+      function applyMode(v){ document.body.setAttribute('data-mode', v); }
+      const savedMode = localStorage.getItem('mode')||'simple'; modeSel.value = savedMode; applyMode(savedMode);
+      modeSel.addEventListener('change', (e)=>{ const v = e.target.value; localStorage.setItem('mode', v); applyMode(v); });
+
+      // Drag-and-drop
+      const dropZone = document.getElementById('dropZone');
+      ;['dragenter','dragover'].forEach(evt => dropZone.addEventListener(evt, (e)=>{ e.preventDefault(); dropZone.style.background='#111827'; }));
+      ;['dragleave','drop'].forEach(evt => dropZone.addEventListener(evt, (e)=>{ e.preventDefault(); dropZone.style.background=''; }));
+      dropZone.addEventListener('drop', (e)=>{
+        const listF = Array.from((e.dataTransfer&&e.dataTransfer.files)||[])
+          .map(f=>{
+            let p = f.path||f.name;
+            try { p = decodeURIComponent(p); } catch {}
+            return p;
+          })
+          .filter(Boolean);
+        if (listF.length) {
+          // Log raw file paths for debugging
+          console.log('[TuneFlip Renderer] Raw dropped paths:', listF);
+          files.splice(0, files.length, ...listF);
+          updateFiles();
+        }
+      });
+
+      // File selection (normalize Unicode paths)
+      document.getElementById('pickFiles').addEventListener('click', async () => {
+        const picked = window.vid2mp3?.selectFiles ? await window.vid2mp3.selectFiles() : await new Promise(resolve=>{ const inp = document.createElement('input'); inp.type='file'; inp.multiple=true; inp.accept='video/*'; inp.onchange = ()=>{ const filesList = Array.from(inp.files||[]); const paths = filesList.map(f=>f.path||f.name); resolve(paths); }; inp.click(); });
+        if (picked && picked.length) {
+          // Log raw file paths for debugging
+          console.log('[TuneFlip Renderer] Raw picked paths:', picked);
+          const norm = picked.map(p => {
+            try {
+              return decodeURIComponent(p);
+            } catch { return p; }
+          });
+          files.splice(0, files.length, ...norm);
+          updateFiles();
+        }
+      });
+
+      // Out dir
+      document.getElementById('pickOut').addEventListener('click', async () => {
+        const dir = window.vid2mp3?.selectFolder ? await window.vid2mp3.selectFolder() : await new Promise(resolve=>{ const inp = document.createElement('input'); inp.type='file'; inp.setAttribute('webkitdirectory',''); inp.setAttribute('directory',''); inp.onchange = ()=>{ const filesList = Array.from(inp.files||[]); const first = filesList[0]; let out = ''; if (first && first.webkitRelativePath) { const wrp = first.webkitRelativePath; const idx = wrp.indexOf('/'); out = idx>0 ? wrp.slice(0, idx) : wrp; } resolve(out); }; inp.click(); });
+        if (dir) $('#outDir').value = dir;
+      });
+
+      // Progress rows
+      const fileProgress = new Map();
+      function ensureRow(input) {
+        if (fileProgress.has(input)) return fileProgress.get(input);
+        const row = document.createElement('div');
+        row.className = 'card';
+        row.innerHTML = `<div class="file">${input}</div><progress max="100" value="0"></progress><div class="file status small"></div><pre class="error-detail" style="display:none;white-space:pre-wrap;background:#fffbe6;color:#b36b00;font-size:12px;padding:8px 0 0 0;margin:0"></pre>`;
+        progressList.appendChild(row);
+        fileProgress.set(input, row);
+        return row;
+      }
+
+      // IPC progress (if available)
+      (window.vid2mp3?.onProgress||function(){ return; })((evt) => {
+        if (evt.type === 'start') {
+          const r = ensureRow(evt.input);
+          r.querySelector('progress').value = 0;
+          r.querySelector('.status').textContent = 'Starting…';
+        } else if (evt.type === 'progress') {
+          const r = ensureRow(evt.input);
+          r.querySelector('progress').value = Math.round(evt.percent||0);
+          r.querySelector('.status').textContent = Math.round(evt.percent||0) + '%';
+        } else if (evt.type === 'done') {
+          const r = ensureRow(evt.input);
+          r.querySelector('progress').value = evt.ok ? 100 : 0;
+          if (evt.ok) {
+            r.querySelector('.status').textContent = 'Done';
+            r.querySelector('.error-detail').style.display = 'none';
+          } else {
+            r.querySelector('.status').textContent = 'Failed';
+            // Show detailed error if available
+            let detail = evt.error || '';
+            if (evt.stderr) detail += '\n' + evt.stderr;
+            r.querySelector('.error-detail').textContent = detail.trim();
+            r.querySelector('.error-detail').style.display = 'block';
+          }
+        }
+        logs.push(evt);
+      });
+
+      // Quality presets
+      const qualitySel = document.getElementById('quality');
+      qualitySel.addEventListener('change', ()=>{ const v = qualitySel.value; if (v==='std') { $('#bitrate').value=192; $('#vbr').value=''; } else if (v==='high') { $('#bitrate').value=256; $('#vbr').value=''; } else if (v==='vbr2') { $('#bitrate').value=''; $('#vbr').value=2; } });
+
+      // Settings helpers
+    async function loadSettingsIntoUI() {
+        try {
+          const s = await (window.vid2mp3?.settings?.get?.() || Promise.resolve({}));
+          if (s.outDir) $('#outDir').value = s.outDir;
+          if (s.quality) $('#quality').value = s.quality;
+          if (s.simpleConcurrency) $('#simpleConcurrency').value = s.simpleConcurrency;
+      if (s.throttle) $('#throttle').value = s.throttle;
+          // Advanced
+          if (s.bitrate != null) $('#bitrate').value = s.bitrate;
+          if (s.vbr != null) $('#vbr').value = s.vbr;
+          if (s.sampleRate != null) $('#samplerate').value = s.sampleRate;
+          if (s.channels != null) $('#channels').value = s.channels;
+          if (s.loudnorm != null) $('#loudnorm').checked = !!s.loudnorm;
+          if (s.keepStructure != null) $('#keepStructure').checked = !!s.keepStructure;
+          if (s.overwrite != null) $('#overwrite').checked = !!s.overwrite;
+          if (s.dryRun != null) $('#dryRun').checked = !!s.dryRun;
+          if (s.template != null) $('#template').value = s.template;
+          if (s.autoMeta != null) $('#autoMeta').checked = !!s.autoMeta;
+          if (s.preferDetected != null) $('#preferDetected').checked = !!s.preferDetected;
+          if (s.autoCoverEnabled != null) $('#autoCoverEnabled').checked = !!s.autoCoverEnabled;
+          if (s.autoCoverTime != null) $('#autoCoverTime').value = s.autoCoverTime;
+          if (s.coverFrameSec != null) $('#coverFrameSec').value = s.coverFrameSec;
+          if (Array.isArray(s.coverFrameRules)) {
+            const lines = s.coverFrameRules.map(r=>`${r.pattern} => ${r.timeSec}`).join('\n');
+            document.getElementById('coverFrameRules').value = lines;
+          }
+          if (s.id3Title) $('#id3Title').value = s.id3Title;
+          if (s.id3Artist) $('#id3Artist').value = s.id3Artist;
+          if (s.id3Album) $('#id3Album').value = s.id3Album;
+          if (s.id3Genre) $('#id3Genre').value = s.id3Genre;
+          if (s.id3Date) $('#id3Date').value = s.id3Date;
+          if (s.id3Track) $('#id3Track').value = s.id3Track;
+          if (s.id3Comment) $('#id3Comment').value = s.id3Comment;
+          if (s.coverPath) $('#coverPath').value = s.coverPath;
+          toast('Settings loaded');
+        } catch (e) { toast('Failed to load settings'); }
+      }
+      async function saveSettingsFromUI() {
+        const data = {
+          outDir: $('#outDir').value,
+          quality: $('#quality').value,
+          simpleConcurrency: parseInt($('#simpleConcurrency').value)||4,
+          throttle: $('#throttle').value,
+          bitrate: parseInt($('#bitrate')?.value)||'',
+          vbr: parseInt($('#vbr')?.value)||'',
+          sampleRate: parseInt($('#samplerate')?.value)||'',
+          channels: parseInt($('#channels')?.value)||'',
+          loudnorm: !!document.getElementById('loudnorm')?.checked,
+          keepStructure: !!document.getElementById('keepStructure')?.checked,
+          overwrite: !!document.getElementById('overwrite')?.checked,
+          dryRun: !!document.getElementById('dryRun')?.checked,
+          autoMeta: !!document.getElementById('autoMeta')?.checked,
+          preferDetected: !!document.getElementById('preferDetected')?.checked,
+          template: $('#template')?.value||'',
+          autoCoverEnabled: !!document.getElementById('autoCoverEnabled')?.checked,
+          autoCoverTime: parseInt($('#autoCoverTime')?.value)||'',
+          coverFrameSec: parseInt($('#coverFrameSec')?.value)||'',
+          coverFrameRules: (document.getElementById('coverFrameRules')?.value||'').split(/\n+/).map(line=>{
+            const m = line.match(/^\s*(.*?)\s*=>\s*(\d+(?:\.\d+)?)\s*$/);
+            if (!m) return null;
+            return { pattern: m[1], timeSec: parseFloat(m[2]) };
+          }).filter(Boolean),
+          id3Title: $('#id3Title')?.value||'',
+          id3Artist: $('#id3Artist')?.value||'',
+          id3Album: $('#id3Album')?.value||'',
+          id3Genre: $('#id3Genre')?.value||'',
+          id3Date: $('#id3Date')?.value||'',
+          id3Track: $('#id3Track')?.value||'',
+          id3Comment: $('#id3Comment')?.value||'',
+          coverPath: $('#coverPath')?.value||'',
+        };
+        try {
+          await (window.vid2mp3?.settings?.save?.(data) || Promise.resolve(true));
+          await loadSettingsIntoUI(); // reload UI after save
+          toast('Settings saved');
+        } catch { toast('Failed to save settings'); }
+      }
+      document.getElementById('saveSettings').addEventListener('click', async () => {
+        try {
+          await saveSettingsFromUI();
+          toast('Settings saved');
+        } catch {
+          toast('Failed to save settings');
+        }
+      });
+      document.getElementById('loadSettings').addEventListener('click', async () => {
+        try {
+          await loadSettingsIntoUI();
+          toast('Settings loaded');
+        } catch {
+          toast('Failed to load settings');
+        }
+      });
+      // Auto-load on startup
+      loadSettingsIntoUI();
+
+      // Resume controls
+      async function refreshResumeUI() {
+        try {
+          const r = await (window.vid2mp3?.resume?.get?.() || Promise.resolve({ enabled: true, queue: { pending: [], done: [], fail: [] }}));
+          document.getElementById('resumeToggle').checked = !!r.enabled;
+          const q = r.queue||{pending:[],done:[],fail:[]};
+          document.getElementById('resumeInfo').textContent = `Queue: ${q.pending.length} pending, ${q.done.length} done, ${q.fail.length} failed`;
+        } catch {}
+      }
+      document.getElementById('resumeToggle').addEventListener('change', async (e)=>{
+        try { await (window.vid2mp3?.resume?.set?.(e.target.checked) || Promise.resolve(true)); refreshResumeUI(); } catch {}
+      });
+      document.getElementById('resumeClear').addEventListener('click', async ()=>{
+        try { await (window.vid2mp3?.resume?.clear?.() || Promise.resolve(true)); refreshResumeUI(); toast('Queue cleared'); } catch {}
+      });
+      refreshResumeUI();
+
+      // Start
+      let firstSuccessSaved = false;
+      document.getElementById('start').addEventListener('click', async () => {
+        if (!files.length) { alert('Select files first'); return; }
+        const outDir = $('#outDir').value || 'out';
+        const options = {
+          // Simple mode uses quality presets; advanced users can open Advanced
+          bitrateKbps: parseInt($('#bitrate')?.value) || undefined,
+          vbrLevel: parseInt($('#vbr')?.value) || undefined,
+          sampleRate: parseInt($('#samplerate')?.value) || undefined,
+          channels: parseInt($('#channels')?.value) || undefined,
+          loudnorm: !!document.getElementById('loudnorm')?.checked,
+          keepStructure: !!document.getElementById('keepStructure')?.checked,
+          overwrite: !!document.getElementById('overwrite')?.checked,
+          concurrency: parseInt($('#simpleConcurrency')?.value) || 4,
+          throttle: $('#throttle').value,
+          autoMeta: !!document.getElementById('autoMeta')?.checked,
+          preferDetected: !!document.getElementById('preferDetected')?.checked,
+          coverFrameSec: parseFloat(document.getElementById('coverFrameSec')?.value) || undefined,
+          coverFrameRules: (document.getElementById('coverFrameRules')?.value||'').split(/\n+/).map(line=>{
+            const m = line.match(/^\s*(.*?)\s*=>\s*(\d+(?:\.\d+)?)\s*$/);
+            if (!m) return null;
+            return { pattern: m[1], timeSec: parseFloat(m[2]) };
+          }).filter(Boolean),
+        };
+        document.getElementById('summary').textContent = 'Working…';
+        try {
+          // Remove auto-save on first success to avoid double toast
+          // const off = window.vid2mp3?.onProgress?.((evt)=>{
+          //   if (evt.type === 'done' && evt.ok && !firstSuccessSaved) {
+          //     firstSuccessSaved = true; saveSettingsFromUI();
+          //   }
+          // });
+          const { results } = await (window.vid2mp3?.startConvert?.({ inputs: files, outDir, options }) || Promise.resolve({ results: [] }));
+          const ok = results.filter(r=>r.ok).length; const fail = results.length - ok;
+          if (fail > 0) {
+            document.getElementById('summary').textContent = `Done: ${ok} ok, ${fail} failed`;
+          } else {
+            document.getElementById('summary').textContent = `Done: ${ok} ok, 0 failed`;
+          }
+        } catch (e) {
+          document.getElementById('summary').textContent = 'Failed'; toast('Failed to start: ' + (e && e.message || e));
+        }
+      });
+
+      // Auto-save on exit
+      window.addEventListener('beforeunload', ()=>{ saveSettingsFromUI(); });
+
+      // Diagnostics if preload missing
+      if (!window.vid2mp3) { const d = document.getElementById('diag'); d.style.display='block'; d.textContent = 'Preload API not detected. Using fallback pickers.'; }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,305 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "npm: install and build",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"-s",
+				"build"
+			],
+			"problemMatcher": []
+		},
+		{
+			"label": "npm: local build (no install)",
+			"type": "shell",
+			"command": "npx",
+			"args": [
+				"-y",
+				"tsc",
+				"-p",
+				"."
+			],
+			"problemMatcher": []
+		},
+		{
+			"label": "npm: install electron",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"install",
+				"--save-dev",
+				"electron"
+			],
+			"problemMatcher": []
+		},
+		{
+			"label": "npm: local build (no install)",
+			"type": "shell",
+			"command": "npx",
+			"args": [
+				"-y",
+				"tsc",
+				"-p",
+				"."
+			],
+			"problemMatcher": []
+		},
+		{
+			"label": "npm: local build (no install)",
+			"type": "shell",
+			"command": "npx",
+			"args": [
+				"-y",
+				"tsc",
+				"-p",
+				"."
+			],
+			"problemMatcher": []
+		},
+		{
+			"label": "npm: local build (no install)",
+			"type": "shell",
+			"command": "npx",
+			"args": [
+				"-y",
+				"tsc",
+				"-p",
+				"."
+			]
+		},
+		{
+			"label": "npm: local build (no install)",
+			"type": "shell",
+			"command": "npx",
+			"args": [
+				"-y",
+				"tsc",
+				"-p",
+				"."
+			]
+		},
+		{
+			"label": "npm: local build (no install)",
+			"type": "shell",
+			"command": "npx",
+			"args": [
+				"-y",
+				"tsc",
+				"-p",
+				"."
+			]
+		},
+		{
+			"label": "npm: local build (no install)",
+			"type": "shell",
+			"command": "npx",
+			"args": [
+				"-y",
+				"tsc",
+				"-p",
+				"."
+			]
+		},
+		{
+			"label": "npm: local build (no install)",
+			"type": "shell",
+			"command": "npx",
+			"args": [
+				"-y",
+				"tsc",
+				"-p",
+				"."
+			]
+		},
+		{
+			"label": "npm: local build (no install)",
+			"type": "shell",
+			"command": "npx",
+			"args": [
+				"-y",
+				"tsc",
+				"-p",
+				"."
+			]
+		},
+		{
+			"label": "npm: local build (no install)",
+			"type": "shell",
+			"command": "npx",
+			"args": [
+				"-y",
+				"tsc",
+				"-p",
+				"."
+			]
+		},
+		{
+			"label": "npm: local build (no install)",
+			"type": "shell",
+			"command": "npx",
+			"args": [
+				"-y",
+				"tsc",
+				"-p",
+				"."
+			]
+		},
+		{
+			"label": "npm: local build (no install)",
+			"type": "shell",
+			"command": "npx",
+			"args": [
+				"-y",
+				"tsc",
+				"-p",
+				"."
+			]
+		},
+		{
+			"label": "npm: local build (no install)",
+			"type": "shell",
+			"command": "npx",
+			"args": [
+				"-y",
+				"tsc",
+				"-p",
+				"."
+			]
+		},
+		{
+			"label": "npm: local build (no install)",
+			"type": "shell",
+			"command": "npx",
+			"args": [
+				"-y",
+				"tsc",
+				"-p",
+				"."
+			]
+		},
+		{
+			"label": "npm: local build (no install)",
+			"type": "shell",
+			"command": "npx",
+			"args": [
+				"-y",
+				"tsc",
+				"-p",
+				"."
+			]
+		},
+		{
+			"label": "npm: local build (no install)",
+			"type": "shell",
+			"command": "npx",
+			"args": [
+				"-y",
+				"tsc",
+				"-p",
+				"."
+			]
+		},
+		{
+			"label": "npm: local build (no install)",
+			"type": "shell",
+			"command": "npx",
+			"args": [
+				"-y",
+				"tsc",
+				"-p",
+				"."
+			]
+		},
+		{
+			"label": "npm: local build (no install)",
+			"type": "shell",
+			"command": "npx",
+			"args": [
+				"-y",
+				"tsc",
+				"-p",
+				"."
+			]
+		},
+		{
+			"label": "npm: local build (no install)",
+			"type": "shell",
+			"command": "npx",
+			"args": [
+				"-y",
+				"tsc",
+				"-p",
+				"."
+			]
+		},
+		{
+			"label": "npm: local build (no install)",
+			"type": "shell",
+			"command": "npx",
+			"args": [
+				"-y",
+				"tsc",
+				"-p",
+				"."
+			]
+		},
+		{
+			"label": "npm: local build (no install)",
+			"type": "shell",
+			"command": "npx",
+			"args": [
+				"-y",
+				"tsc",
+				"-p",
+				"."
+			]
+		},
+		{
+			"label": "npm: local build (no install)",
+			"type": "shell",
+			"command": "npx",
+			"args": [
+				"-y",
+				"tsc",
+				"-p",
+				"."
+			]
+		},
+		{
+			"label": "npm: local build (no install)",
+			"type": "shell",
+			"command": "npx",
+			"args": [
+				"-y",
+				"tsc",
+				"-p",
+				"."
+			]
+		},
+		{
+			"label": "npm: local build (no install)",
+			"type": "shell",
+			"command": "npx",
+			"args": [
+				"-y",
+				"tsc",
+				"-p",
+				"."
+			]
+		},
+		{
+			"label": "npm: local build (no install)",
+			"type": "shell",
+			"command": "npx",
+			"args": [
+				"-y",
+				"tsc",
+				"-p",
+				"."
+			]
+		}
+	]
+}
