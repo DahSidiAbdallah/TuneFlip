@@ -2,6 +2,8 @@ import ffmpegPath from 'ffmpeg-static';
 import ffprobePath from 'ffprobe-static';
 import ffmpeg from 'fluent-ffmpeg';
 import os from 'node:os';
+import path from 'node:path';
+import { getShortPathIfAscii } from './shortpath.js';
 
 ffmpeg.setFfmpegPath(ffmpegPath as unknown as string);
 ffmpeg.setFfprobePath(ffprobePath.path);
@@ -29,7 +31,7 @@ export function createConverter() {
     attachedPicStreamIndex?: number;
   }> {
     return new Promise((resolve) => {
-      ffmpeg.ffprobe(input, (err: Error | undefined, data: any) => {
+  ffmpeg.ffprobe(getShortPathIfAscii(path.resolve(input)), (err: Error | undefined, data: any) => {
         if (err || !data) return resolve({ tags: {} });
         const tags: Record<string, string> = {};
         const fmtTags = (data.format as any)?.tags || {};
@@ -54,10 +56,14 @@ export function createConverter() {
 
   async function extractAttachedPicture(input: string, streamIndex: number, outPath: string): Promise<void> {
     return new Promise((resolve, reject) => {
-      ffmpeg()
-        .input(input)
-  .outputOptions(['-map', `0:${streamIndex}`, '-frames:v', '1'])
-        .output(outPath)
+      const cmd = ffmpeg()
+        .input(getShortPathIfAscii(path.resolve(input)))
+        .outputOptions(['-map', `0:${streamIndex}`, '-frames:v', '1'])
+        .output(getShortPathIfAscii(path.resolve(outPath)));
+      if (process.platform === 'win32' && cmd.setSpawnOptions) {
+        cmd.setSpawnOptions({ windowsVerbatimArguments: true });
+      }
+      cmd
         .on('end', () => resolve())
         .on('error', (err: Error) => reject(err))
         .run();
@@ -65,11 +71,15 @@ export function createConverter() {
   }
   async function extractFrame(input: string, timeSec: number, outPath: string): Promise<void> {
     return new Promise((resolve, reject) => {
-      ffmpeg()
-        .input(input)
+      const cmd = ffmpeg()
+        .input(getShortPathIfAscii(path.resolve(input)))
         .seekInput(Math.max(0, timeSec))
         .outputOptions(['-frames:v', '1'])
-        .output(outPath)
+        .output(getShortPathIfAscii(path.resolve(outPath)));
+      if (process.platform === 'win32' && cmd.setSpawnOptions) {
+        cmd.setSpawnOptions({ windowsVerbatimArguments: true });
+      }
+      cmd
         .on('end', () => resolve())
         .on('error', (err: Error) => reject(err))
         .run();
@@ -80,12 +90,16 @@ export function createConverter() {
     const filter = 'loudnorm=I=-16:TP=-1.5:LRA=11:measured_I=-99:measured_TP=-99:measured_LRA=-99:measured_thresh=-99:print_format=json';
   return new Promise((resolve, reject) => {
       let json = '';
-      ffmpeg()
-        .input(input)
+      const cmd = ffmpeg()
+        .input(getShortPathIfAscii(path.resolve(input)))
         .audioFilters(filter)
-    .outputOptions(['-f', 'null'])
-    .output(os.platform() === 'win32' ? 'NUL' : '/dev/null')
-  .on('stderr', (line: string) => {
+        .outputOptions(['-f', 'null'])
+        .output(os.platform() === 'win32' ? 'NUL' : '/dev/null');
+      if (process.platform === 'win32' && cmd.setSpawnOptions) {
+        cmd.setSpawnOptions({ windowsVerbatimArguments: true });
+      }
+      cmd
+        .on('stderr', (line: string) => {
           // ffmpeg prints JSON to stderr for filters
           json += line + '\n';
         })
@@ -104,13 +118,16 @@ export function createConverter() {
             resolve({});
           }
         })
-  .on('error', (err: Error) => reject(err))
+        .on('error', (err: Error) => reject(err))
         .run();
     });
   }
 
   function buildBase(input: string, opts: ToMp3Options) {
-    let cmd = ffmpeg().input(input);
+  let cmd = ffmpeg().input(getShortPathIfAscii(path.resolve(input)));
+    if (process.platform === 'win32' && cmd.setSpawnOptions) {
+      cmd.setSpawnOptions({ windowsVerbatimArguments: true });
+    }
     if (opts.trim?.start != null) cmd = cmd.setStartTime(opts.trim.start);
     if (opts.trim?.end != null && opts.trim.start != null) {
       const dur = Math.max(0, opts.trim.end - opts.trim.start);
@@ -165,22 +182,22 @@ export function createConverter() {
         if (md.track) outOpts.push('-metadata', `track=${md.track}`);
         if (md.comment) outOpts.push('-metadata', `comment=${md.comment}`);
         if (md.coverImagePath) {
-          cmd = cmd.input(md.coverImagePath);
+          cmd = cmd.input(getShortPathIfAscii(md.coverImagePath));
           outOpts.push('-map', '1', '-id3v2_version', '3');
         } else {
           outOpts.push('-id3v2_version', '3');
         }
       }
 
-      cmd = cmd.outputOptions(outOpts);
+  cmd = cmd.outputOptions(outOpts);
 
       cmd
-  .on('progress', (p: { percent?: number }) => {
+        .on('progress', (p: { percent?: number }) => {
           if (onProgress && p.percent != null) onProgress(p.percent);
         })
-  .on('end', () => resolve())
-  .on('error', (err: Error) => reject(err))
-        .save(output);
+        .on('end', () => resolve())
+        .on('error', (err: Error) => reject(err))
+  .save(getShortPathIfAscii(path.resolve(output)));
     });
   }
 
