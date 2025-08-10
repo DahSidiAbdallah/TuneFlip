@@ -66,16 +66,21 @@ function writeQueue(q: { pending: string[]; done: string[]; fail: string[] }) {
   fs.writeFileSync(p, JSON.stringify(q, null, 2), 'utf8');
 }
 
+function isBase64(str: string) {
+  return /^[A-Za-z0-9+/=]+$/.test(str) && str.length % 4 === 0;
+}
 function decodePath(p: string) {
   if (typeof p !== 'string') return p;
-  try {
-    const decoded = Buffer.from(p, 'base64').toString('utf8');
-    console.log('[TuneFlip Main] Decoding base64 path:', p, '->', decoded);
-    return decoded;
-  } catch {
-    console.log('[TuneFlip Main] Failed to decode base64 path:', p);
-    return p;
+  if (isBase64(p)) {
+    try {
+      const decoded = Buffer.from(p, 'base64').toString('utf8');
+      // Only accept if round-trips back to the same base64
+      if (Buffer.from(decoded, 'utf8').toString('base64').replace(/=+$/, '') === p.replace(/=+$/, '')) {
+        return decoded;
+      }
+    } catch {}
   }
+  return p;
 }
 function decodePaths(arr: any) {
   if (!Array.isArray(arr)) return arr;
