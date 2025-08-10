@@ -379,42 +379,39 @@
 
       // Settings helpers
     async function loadSettingsIntoUI() {
-        try {
-          const s = await (window.vid2mp3?.settings?.get?.() || Promise.resolve({}));
-          if (s.outDir) $('#outDir').value = s.outDir;
-          if (s.quality) $('#quality').value = s.quality;
-          if (s.simpleConcurrency) $('#simpleConcurrency').value = s.simpleConcurrency;
+      const s = await (window.vid2mp3?.settings?.get?.() || Promise.resolve({}));
+      if (s.outDir) $('#outDir').value = s.outDir;
+      if (s.quality) $('#quality').value = s.quality;
+      if (s.simpleConcurrency) $('#simpleConcurrency').value = s.simpleConcurrency;
       if (s.throttle) $('#throttle').value = s.throttle;
-          // Advanced
-          if (s.bitrate != null) $('#bitrate').value = s.bitrate;
-          if (s.vbr != null) $('#vbr').value = s.vbr;
-          if (s.sampleRate != null) $('#samplerate').value = s.sampleRate;
-          if (s.channels != null) $('#channels').value = s.channels;
-          if (s.loudnorm != null) $('#loudnorm').checked = !!s.loudnorm;
-          if (s.keepStructure != null) $('#keepStructure').checked = !!s.keepStructure;
-          if (s.overwrite != null) $('#overwrite').checked = !!s.overwrite;
-          if (s.dryRun != null) $('#dryRun').checked = !!s.dryRun;
-          if (s.template != null) $('#template').value = s.template;
-          if (s.autoMeta != null) $('#autoMeta').checked = !!s.autoMeta;
-          if (s.preferDetected != null) $('#preferDetected').checked = !!s.preferDetected;
-          if (s.autoCoverEnabled != null) $('#autoCoverEnabled').checked = !!s.autoCoverEnabled;
-          if (s.autoCoverTime != null) $('#autoCoverTime').value = s.autoCoverTime;
-          if (s.coverFrameSec != null) $('#coverFrameSec').value = s.coverFrameSec;
-          if (Array.isArray(s.coverFrameRules)) {
-            const lines = s.coverFrameRules.map(r=>`${r.pattern} => ${r.timeSec}`).join('\n');
-            document.getElementById('coverFrameRules').value = lines;
-          }
-          if (s.id3Title) $('#id3Title').value = s.id3Title;
-          if (s.id3Artist) $('#id3Artist').value = s.id3Artist;
-          if (s.id3Album) $('#id3Album').value = s.id3Album;
-          if (s.id3Genre) $('#id3Genre').value = s.id3Genre;
-          if (s.id3Date) $('#id3Date').value = s.id3Date;
-          if (s.id3Track) $('#id3Track').value = s.id3Track;
-          if (s.id3Comment) $('#id3Comment').value = s.id3Comment;
-          if (s.coverPath) $('#coverPath').value = s.coverPath;
-          toast('Settings loaded');
-        } catch (e) { toast('Failed to load settings'); }
+      // Advanced
+      if (s.bitrate != null) $('#bitrate').value = s.bitrate;
+      if (s.vbr != null) $('#vbr').value = s.vbr;
+      if (s.sampleRate != null) $('#samplerate').value = s.sampleRate;
+      if (s.channels != null) $('#channels').value = s.channels;
+      if (s.loudnorm != null) $('#loudnorm').checked = !!s.loudnorm;
+      if (s.keepStructure != null) $('#keepStructure').checked = !!s.keepStructure;
+      if (s.overwrite != null) $('#overwrite').checked = !!s.overwrite;
+      if (s.dryRun != null) $('#dryRun').checked = !!s.dryRun;
+      if (s.template != null) $('#template').value = s.template;
+      if (s.autoMeta != null) $('#autoMeta').checked = !!s.autoMeta;
+      if (s.preferDetected != null) $('#preferDetected').checked = !!s.preferDetected;
+      if (s.autoCoverEnabled != null) $('#autoCoverEnabled').checked = !!s.autoCoverEnabled;
+      if (s.autoCoverTime != null) $('#autoCoverTime').value = s.autoCoverTime;
+      if (s.coverFrameSec != null) $('#coverFrameSec').value = s.coverFrameSec;
+      if (Array.isArray(s.coverFrameRules)) {
+        const lines = s.coverFrameRules.map(r=>`${r.pattern} => ${r.timeSec}`).join('\n');
+        document.getElementById('coverFrameRules').value = lines;
       }
+      if (s.id3Title) $('#id3Title').value = s.id3Title;
+      if (s.id3Artist) $('#id3Artist').value = s.id3Artist;
+      if (s.id3Album) $('#id3Album').value = s.id3Album;
+      if (s.id3Genre) $('#id3Genre').value = s.id3Genre;
+      if (s.id3Date) $('#id3Date').value = s.id3Date;
+      if (s.id3Track) $('#id3Track').value = s.id3Track;
+      if (s.id3Comment) $('#id3Comment').value = s.id3Comment;
+      if (s.coverPath) $('#coverPath').value = s.coverPath;
+    }
       async function saveSettingsFromUI() {
         const data = {
           outDir: $('#outDir').value,
@@ -449,11 +446,8 @@
           id3Comment: $('#id3Comment')?.value||'',
           coverPath: $('#coverPath')?.value||'',
         };
-        try {
-          await (window.vid2mp3?.settings?.save?.(data) || Promise.resolve(true));
-          await loadSettingsIntoUI(); // reload UI after save
-          toast('Settings saved');
-        } catch { toast('Failed to save settings'); }
+        await (window.vid2mp3?.settings?.save?.(data) || Promise.resolve(true));
+        await loadSettingsIntoUI(); // reload UI after save
       }
       document.getElementById('saveSettings').addEventListener('click', async () => {
         try {
