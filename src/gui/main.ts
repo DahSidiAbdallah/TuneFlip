@@ -1,11 +1,10 @@
 import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { convertPaths } from '../lib/convert.js';
 import fs from 'node:fs';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// Use CommonJS approach for __dirname
+const currentDir = __dirname;
 
 function createWindow() {
   const iconPath = path.resolve(__dirname, '../../images/logo.png');

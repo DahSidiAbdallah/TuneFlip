@@ -3,6 +3,7 @@ import ffprobePath from 'ffprobe-static';
 import ffmpeg from 'fluent-ffmpeg';
 import os from 'node:os';
 import path from 'node:path';
+import fs from 'node:fs';
 import { getShortPathIfAscii } from './shortpath.js';
 
 ffmpeg.setFfmpegPath(ffmpegPath as unknown as string);
@@ -30,9 +31,33 @@ export function createConverter() {
     tags: Record<string, string>;
     attachedPicStreamIndex?: number;
   }> {
-    return new Promise((resolve) => {
-  ffmpeg.ffprobe(getShortPathIfAscii(path.resolve(input)), (err: Error | undefined, data: any) => {
-        if (err || !data) return resolve({ tags: {} });
+    // Check if file exists and is not empty
+    try {
+      const stats = fs.statSync(input);
+      if (stats.size === 0) {
+        throw new Error('Input file is empty (0 bytes)');
+      }
+    } catch (err) {
+      if (err instanceof Error && err.message.includes('ENOENT')) {
+        throw new Error(`Input file not found: ${input}`);
+      }
+      throw err;
+    }
+
+    return new Promise((resolve, reject) => {
+      ffmpeg.ffprobe(getShortPathIfAscii(path.resolve(input)), (err: Error | undefined, data: any) => {
+        if (err) {
+          if (err.message.includes('Invalid data found when processing input')) {
+            reject(new Error(`Invalid or corrupted video file: ${input}. The file may be empty or in an unsupported format.`));
+            return;
+          }
+          reject(err);
+          return;
+        }
+        if (!data) {
+          resolve({ tags: {} });
+          return;
+        }
         const tags: Record<string, string> = {};
         const fmtTags = (data.format as any)?.tags || {};
         const candidates = [fmtTags, ...((data.streams||[]).map((s:any)=>s.tags||{}))];
@@ -60,8 +85,8 @@ export function createConverter() {
         .input(getShortPathIfAscii(path.resolve(input)))
         .outputOptions(['-map', `0:${streamIndex}`, '-frames:v', '1'])
         .output(getShortPathIfAscii(path.resolve(outPath)));
-      if (process.platform === 'win32' && cmd.setSpawnOptions) {
-        cmd.setSpawnOptions({ windowsVerbatimArguments: true });
+      if (process.platform === 'win32' && (cmd as any).setSpawnOptions) {
+        (cmd as any).setSpawnOptions({ windowsVerbatimArguments: true });
       }
       cmd
         .on('end', () => resolve())
@@ -76,8 +101,8 @@ export function createConverter() {
         .seekInput(Math.max(0, timeSec))
         .outputOptions(['-frames:v', '1'])
         .output(getShortPathIfAscii(path.resolve(outPath)));
-      if (process.platform === 'win32' && cmd.setSpawnOptions) {
-        cmd.setSpawnOptions({ windowsVerbatimArguments: true });
+      if (process.platform === 'win32' && (cmd as any).setSpawnOptions) {
+        (cmd as any).setSpawnOptions({ windowsVerbatimArguments: true });
       }
       cmd
         .on('end', () => resolve())
@@ -95,8 +120,8 @@ export function createConverter() {
         .audioFilters(filter)
         .outputOptions(['-f', 'null'])
         .output(os.platform() === 'win32' ? 'NUL' : '/dev/null');
-      if (process.platform === 'win32' && cmd.setSpawnOptions) {
-        cmd.setSpawnOptions({ windowsVerbatimArguments: true });
+      if (process.platform === 'win32' && (cmd as any).setSpawnOptions) {
+        (cmd as any).setSpawnOptions({ windowsVerbatimArguments: true });
       }
       cmd
         .on('stderr', (line: string) => {
@@ -125,8 +150,8 @@ export function createConverter() {
 
   function buildBase(input: string, opts: ToMp3Options) {
   let cmd = ffmpeg().input(getShortPathIfAscii(path.resolve(input)));
-    if (process.platform === 'win32' && cmd.setSpawnOptions) {
-      cmd.setSpawnOptions({ windowsVerbatimArguments: true });
+    if (process.platform === 'win32' && (cmd as any).setSpawnOptions) {
+      (cmd as any).setSpawnOptions({ windowsVerbatimArguments: true });
     }
     if (opts.trim?.start != null) cmd = cmd.setStartTime(opts.trim.start);
     if (opts.trim?.end != null && opts.trim.start != null) {
@@ -140,6 +165,19 @@ export function createConverter() {
 
   async function toMp3(opts: ToMp3Options) {
     const { input, output, vbrLevel, bitrateKbps, sampleRate, channels, loudnorm, onProgress } = opts;
+
+    // Check if input file exists and is not empty
+    try {
+      const stats = fs.statSync(input);
+      if (stats.size === 0) {
+        throw new Error('Input file is empty (0 bytes)');
+      }
+    } catch (err) {
+      if (err instanceof Error && err.message.includes('ENOENT')) {
+        throw new Error(`Input file not found: ${input}`);
+      }
+      throw err;
+    }
 
     const pass2Loudnorm = loudnorm ? await measureLoudness(input) : undefined;
 
@@ -174,18 +212,18 @@ export function createConverter() {
       // ID3 metadata
       if (opts.metadata) {
         const md = opts.metadata;
-        if (md.title) outOpts.push('-metadata', `title=${md.title}`);
-        if (md.artist) outOpts.push('-metadata', `artist=${md.artist}`);
-        if (md.album) outOpts.push('-metadata', `album=${md.album}`);
-        if (md.genre) outOpts.push('-metadata', `genre=${md.genre}`);
-        if (md.date) outOpts.push('-metadata', `date=${md.date}`);
-        if (md.track) outOpts.push('-metadata', `track=${md.track}`);
-        if (md.comment) outOpts.push('-metadata', `comment=${md.comment}`);
+        if (md.title) cmd = cmd.outputOption('-metadata', `title=${md.title}`);
+        if (md.artist) cmd = cmd.outputOption('-metadata', `artist=${md.artist}`);
+        if (md.album) cmd = cmd.outputOption('-metadata', `album=${md.album}`);
+        if (md.genre) cmd = cmd.outputOption('-metadata', `genre=${md.genre}`);
+        if (md.date) cmd = cmd.outputOption('-metadata', `date=${md.date}`);
+        if (md.track) cmd = cmd.outputOption('-metadata', `track=${md.track}`);
+        if (md.comment) cmd = cmd.outputOption('-metadata', `comment=${md.comment}`);
         if (md.coverImagePath) {
           cmd = cmd.input(getShortPathIfAscii(md.coverImagePath));
-          outOpts.push('-map', '1', '-id3v2_version', '3');
+          outOpts.push('-map', '0:a', '-map', '1', '-c:v', 'copy', '-disposition:v:1', 'attached_pic', '-id3v2_version', '3');
         } else {
-          outOpts.push('-id3v2_version', '3');
+          outOpts.push('-map', '0:a', '-id3v2_version', '3');
         }
       }
 
@@ -196,7 +234,20 @@ export function createConverter() {
           if (onProgress && p.percent != null) onProgress(p.percent);
         })
         .on('end', () => resolve())
-        .on('error', (err: Error) => reject(err))
+        .on('error', (err: Error) => {
+          // Improve error messages for common issues
+          if (err.message.includes('Invalid data found when processing input')) {
+            reject(new Error(`Invalid or corrupted video file: ${input}. The file may be empty or in an unsupported format.`));
+          } else {
+            // Add more detailed error information
+            reject(new Error(`FFmpeg error: ${err.message}. Input: ${input}, Output: ${output}`));
+          }
+        })
+        // Capture stderr for more detailed error information
+        .on('stderr', (stderrLine: string) => {
+          // Log stderr for debugging
+          console.error(`[FFMPEG STDERR] ${stderrLine}`);
+        })
   .save(getShortPathIfAscii(path.resolve(output)));
     });
   }

@@ -11,5 +11,6 @@
     "resolveJsonModule": true,
     "strict": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["src/gui/main.ts", "src/gui/preload.ts", "src/gui/copy-assets.ts"]
 }

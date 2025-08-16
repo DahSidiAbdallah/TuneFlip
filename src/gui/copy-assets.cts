@@ -1,9 +1,8 @@
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+const fs = require('node:fs');
+const path = require('node:path');
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// Use CommonJS approach for __dirname
+const currentDir = __dirname;
 
 // When running from dist/gui/copy-assets.js, __dirname is dist/gui
 const destHtml = path.resolve(__dirname, 'index.html');
