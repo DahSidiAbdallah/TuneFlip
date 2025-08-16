@@ -1,10 +1,29 @@
+// Add preview-output handler for output preview before conversion
+ipcMain.handle('preview-output', async (_e, payload) => {
+  // Simulate output file names based on inputs, outDir, template, and options
+  const { inputs, outDir, options } = payload as { inputs: string[]; outDir: string; options: any };
+  // Use the same logic as in convertPaths to generate output paths, but do not run ffmpeg
+  // This is a simplified version for preview only
+  const template = options.template || '{basename}.mp3';
+  const preview = (inputs || []).map(input => {
+    const ext = path.extname(input).replace(/^\./, '');
+    const basename = path.basename(input, path.extname(input));
+    let outName = template.replace('{basename}', basename).replace('{ext}', ext);
+    if (options.bitrateKbps) outName = outName.replace('{bitrate}', String(options.bitrateKbps));
+    if (options.vbrLevel) outName = outName.replace('{vbr}', String(options.vbrLevel));
+    return path.join(outDir, outName);
+  });
+  return preview;
+});
 import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import path from 'node:path';
 import { convertPaths } from '../lib/convert.js';
 import fs from 'node:fs';
 
-// Use CommonJS approach for __dirname
-const currentDir = __dirname;
+// ES module __dirname replacement
+import { fileURLToPath } from 'node:url';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 function createWindow() {
   const iconPath = path.resolve(__dirname, '../../images/logo.png');
