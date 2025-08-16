@@ -115,7 +115,7 @@ function tempCoverPath(outDir: string, suffix: string) {
   return join(outDir, `.tf-${rand}${suffix}`);
 }
 
-export async function convertPaths(inputs: string[], opts: ConvertOptions): Promise<ConvertResult[]> {
+async function convertPaths(inputs: string[], opts: ConvertOptions): Promise<ConvertResult[]> {
   // Make concurrency configurable and safe for very large queues; apply throttle caps
   const baseConc = Math.max(1, Math.min(64, opts.concurrency ?? Math.max(1, Math.floor(os.cpus().length / 2))));
   let concurrency = baseConc;
@@ -305,3 +305,5 @@ export function createController() {
     get paused(){ return paused; }
   };
 }
+
+export { convertPaths };
