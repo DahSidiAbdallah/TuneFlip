@@ -120,17 +120,17 @@
       </div>
 
       <!-- Simple controls -->
-      <div class="card simpleOnly">
+  <div class="card simpleOnly" title="Quick conversion with recommended settings. Use Advanced for more control.">
         <div class="grid">
           <div>
-            <label>Output folder</label>
+            <label for="outDir" title="Where converted files will be saved. You can browse or type a path.">Output folder</label>
             <div class="row-inline">
               <input type="text" id="outDir" placeholder="out" value="out" />
               <button class="btn secondary" id="pickOut">Browse</button>
             </div>
           </div>
           <div>
-            <label>Quality</label>
+            <label for="quality" title="Choose between standard, high, or variable bitrate (VBR) quality. Use Advanced for custom.">Quality</label>
             <select id="quality">
               <option value="std">Standard (192 kbps)</option>
               <option value="high">High (256 kbps)</option>
@@ -139,11 +139,11 @@
             </select>
           </div>
           <div>
-            <label>Parallel conversions</label>
+            <label for="simpleConcurrency" title="How many files to convert at once. Higher = faster, but uses more CPU.">Parallel conversions</label>
             <input type="number" id="simpleConcurrency" value="4" min="1" />
           </div>
           <div>
-            <label>Resource mode</label>
+            <label for="throttle" title="Throttle conversion speed to reduce system impact.">Resource mode</label>
             <select id="throttle">
               <option value="off">Max speed</option>
               <option value="medium">Balanced</option>
@@ -153,40 +153,40 @@
         </div>
         <div class="row-inline" style="margin-top:10px">
           <button class="btn" id="start">Convert</button>
-          <button class="btn secondary" id="saveSettings">Save settings</button>
-          <button class="btn secondary" id="loadSettings">Load settings</button>
+          <button class="btn secondary" id="saveSettings" title="Save all current settings for next time.">Save settings</button>
+          <button class="btn secondary" id="loadSettings" title="Restore your last saved settings.">Load settings</button>
           <div id="summary" class="badge">Ready</div>
         </div>
       </div>
 
       <!-- Advanced controls -->
-      <div class="card advanced">
+      <div class="card advanced" title="Full control over all conversion options.">
         <details id="advanced">
           <summary style="cursor:pointer">Advanced options</summary>
           <div class="grid" style="margin-top:12px">
-            <div><label>Bitrate (kbps)</label><input type="number" id="bitrate" placeholder="192" /></div>
-            <div><label>VBR (0-9)</label><input type="number" id="vbr" min="0" max="9" /></div>
-            <div><label>Sample rate (Hz)</label><input type="number" id="samplerate" placeholder="44100" /></div>
-            <div><label>Channels</label><input type="number" id="channels" placeholder="2" /></div>
-            <div><label>Trim (start[-end] sec)</label><input type="text" id="trim" placeholder="5-65" /></div>
-            <div><label>Concurrency</label><input type="number" id="concurrency" placeholder="4" value="4" /></div>
+            <div><label for="bitrate" title="Constant bitrate in kbps. Leave blank to use VBR.">Bitrate (kbps)</label><input type="number" id="bitrate" placeholder="192" /></div>
+            <div><label for="vbr" title="Variable bitrate level (0=best, 9=smallest). Leave blank to use CBR.">VBR (0-9)</label><input type="number" id="vbr" min="0" max="9" /></div>
+            <div><label for="samplerate" title="Audio sample rate in Hz (e.g. 44100, 48000)">Sample rate (Hz)</label><input type="number" id="samplerate" placeholder="44100" /></div>
+            <div><label for="channels" title="Number of audio channels (1=mono, 2=stereo)">Channels</label><input type="number" id="channels" placeholder="2" /></div>
+            <div><label for="trim" title="Trim audio: start[-end] in seconds. E.g. 5-65 trims to 1:05.">Trim (start[-end] sec)</label><input type="text" id="trim" placeholder="5-65" /></div>
+            <div><label for="concurrency" title="How many files to convert at once.">Concurrency</label><input type="number" id="concurrency" placeholder="4" value="4" /></div>
             <div><label>&nbsp;</label>
               <div class="small">
-                <label><input type="checkbox" id="loudnorm" /> Loudness normalize</label><br />
-                <label><input type="checkbox" id="keepStructure" /> Keep folder structure</label><br />
-                <label><input type="checkbox" id="overwrite" /> Overwrite</label><br />
-                <label><input type="checkbox" id="dryRun" /> Dry run</label>
+                <label title="Apply EBU R128 loudness normalization (2-pass)"><input type="checkbox" id="loudnorm" /> Loudness normalize</label><br />
+                <label title="Preserve input folder structure in output."><input type="checkbox" id="keepStructure" /> Keep folder structure</label><br />
+                <label title="Overwrite existing files in output folder."><input type="checkbox" id="overwrite" /> Overwrite</label><br />
+                <label title="Simulate conversion without writing files."><input type="checkbox" id="dryRun" /> Dry run</label>
               </div>
             </div>
             <div>
-              <label>Auto metadata</label>
+              <label for="autoMeta" title="Try to detect title, artist, album, and cover from input.">Auto metadata</label>
               <div class="small">
-                <label><input type="checkbox" id="autoMeta" checked /> Detect title/artist/album/cover</label><br />
-                <label><input type="checkbox" id="preferDetected" /> Prefer detected over manual</label>
+                <label title="Enable automatic detection of metadata."><input type="checkbox" id="autoMeta" checked /> Detect title/artist/album/cover</label><br />
+                <label title="Use detected metadata even if manual fields are filled."><input type="checkbox" id="preferDetected" /> Prefer detected over manual</label>
               </div>
             </div>
             <div>
-              <label>Output template</label>
+              <label for="template" title="Template for output filenames. Use tokens like {basename}.">Output template</label>
               <div class="row-inline">
                 <input type="text" id="template" placeholder="{basename}.mp3" style="flex:1" />
                 <select id="tokenSel">
@@ -197,37 +197,37 @@
                   <option value="{vbr}">{vbr}</option>
                 </select>
               </div>
-              <small class="file">Tokens: {basename} {ext} {bitrate} {vbr}</small>
+              <small class="file" title="Available tokens for output filenames.">Tokens: {basename} {ext} {bitrate} {vbr}</small>
             </div>
             <div>
-              <label>Auto cover</label>
+              <label for="autoCoverEnabled" title="Extract cover image from video at a specific time.">Auto cover</label>
               <div class="row-inline">
                 <label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="autoCoverEnabled" /> Enable</label>
                 <input type="number" id="autoCoverTime" placeholder="5" title="Time (sec)" />
               </div>
             </div>
-            <div><label>ID3: Title</label><input type="text" id="id3Title" /></div>
-            <div><label>ID3: Artist</label><input type="text" id="id3Artist" /></div>
-            <div><label>ID3: Album</label><input type="text" id="id3Album" /></div>
-            <div><label>ID3: Genre</label><input type="text" id="id3Genre" /></div>
-            <div><label>ID3: Date</label><input type="text" id="id3Date" /></div>
-            <div><label>ID3: Track</label><input type="text" id="id3Track" /></div>
-            <div><label>ID3: Comment</label><input type="text" id="id3Comment" /></div>
-            <div><label>Cover image</label><input type="text" id="coverPath" placeholder="C:\\path\\cover.jpg" /></div>
+            <div><label for="id3Title" title="Set custom title for output files.">ID3: Title</label><input type="text" id="id3Title" /></div>
+            <div><label for="id3Artist" title="Set custom artist for output files.">ID3: Artist</label><input type="text" id="id3Artist" /></div>
+            <div><label for="id3Album" title="Set custom album for output files.">ID3: Album</label><input type="text" id="id3Album" /></div>
+            <div><label for="id3Genre" title="Set custom genre for output files.">ID3: Genre</label><input type="text" id="id3Genre" /></div>
+            <div><label for="id3Date" title="Set custom date for output files.">ID3: Date</label><input type="text" id="id3Date" /></div>
+            <div><label for="id3Track" title="Set custom track number for output files.">ID3: Track</label><input type="text" id="id3Track" /></div>
+            <div><label for="id3Comment" title="Set custom comment for output files.">ID3: Comment</label><input type="text" id="id3Comment" /></div>
+            <div><label for="coverPath" title="Path to a custom cover image file.">Cover image</label><input type="text" id="coverPath" placeholder="C:\\path\\cover.jpg" /></div>
             <div>
-              <label>Retry</label>
+              <label for="retryAttempts" title="How many times to retry failed conversions.">Retry</label>
               <div class="row-inline">
                 <input type="number" id="retryAttempts" placeholder="Retries" value="1" style="width:100px" />
                 <input type="number" id="retryDelay" placeholder="Delay ms" value="0" style="width:120px" />
               </div>
             </div>
             <div>
-              <label>Cover frame time (sec)</label>
+              <label for="coverFrameSec" title="Time in seconds to extract cover frame from video.">Cover frame time (sec)</label>
               <input type="number" id="coverFrameSec" placeholder="5" />
             </div>
             <div>
-              <label>Cover frame rules</label>
-              <div class="small">Regex pattern => time (sec), one per line. Example: ^Live => 60</div>
+              <label for="coverFrameRules" title="Regex pattern => time (sec), one per line. Example: ^Live => 60">Cover frame rules</label>
+              <div class="small" title="Regex pattern => time (sec), one per line. Example: ^Live => 60">Regex pattern => time (sec), one per line. Example: ^Live => 60</div>
               <textarea id="coverFrameRules" rows="4" style="width:100%; background:#0f131a; color:#e6e6e6; border:1px solid #1f2937; border-radius:8px" placeholder="^Intro => 30"></textarea>
             </div>
           </div>
@@ -245,14 +245,22 @@
         </details>
       </div>
 
-      <div class="card">
-        <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px">
+  <div class="card">
+  <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px">
           <label class="small">Resume queue on next launch</label>
           <input type="checkbox" id="resumeToggle" checked />
           <button class="btn secondary" id="resumeClear">Clear queue</button>
           <div id="resumeInfo" class="small"></div>
         </div>
-        <div id="progressList"></div>
+  <div id="progressList"></div>
+      <!-- Advanced Convert Button and Output Preview -->
+      <div class="card advanced" style="margin-top:16px">
+        <div class="row-inline">
+          <button class="btn" id="startAdvanced" title="Convert using advanced options">Convert (Advanced)</button>
+          <button class="btn secondary" id="previewOutput" title="Preview output file names before converting">Preview Output</button>
+        </div>
+        <div id="outputPreview" class="small" style="margin-top:8px;white-space:pre-wrap;"></div>
+      </div>
       </div>
 
     </div>
@@ -382,13 +390,16 @@
       const s = await (window.vid2mp3?.settings?.get?.() || Promise.resolve({}));
       if (s.outDir) $('#outDir').value = s.outDir;
       if (s.quality) $('#quality').value = s.quality;
-      if (s.simpleConcurrency) $('#simpleConcurrency').value = s.simpleConcurrency;
+      if (s.simpleConcurrency != null) $('#simpleConcurrency').value = s.simpleConcurrency;
       if (s.throttle) $('#throttle').value = s.throttle;
       // Advanced
       if (s.bitrate != null) $('#bitrate').value = s.bitrate;
       if (s.vbr != null) $('#vbr').value = s.vbr;
       if (s.sampleRate != null) $('#samplerate').value = s.sampleRate;
       if (s.channels != null) $('#channels').value = s.channels;
+      if (s.concurrency != null) $('#concurrency').value = s.concurrency;
+      if (s.retryAttempts != null) $('#retryAttempts').value = s.retryAttempts;
+      if (s.retryDelay != null) $('#retryDelay').value = s.retryDelay;
       if (s.loudnorm != null) $('#loudnorm').checked = !!s.loudnorm;
       if (s.keepStructure != null) $('#keepStructure').checked = !!s.keepStructure;
       if (s.overwrite != null) $('#overwrite').checked = !!s.overwrite;
@@ -422,6 +433,9 @@
           vbr: parseInt($('#vbr')?.value)||'',
           sampleRate: parseInt($('#samplerate')?.value)||'',
           channels: parseInt($('#channels')?.value)||'',
+          concurrency: parseInt($('#concurrency')?.value)||4,
+          retryAttempts: parseInt($('#retryAttempts')?.value)||1,
+          retryDelay: parseInt($('#retryDelay')?.value)||0,
           loudnorm: !!document.getElementById('loudnorm')?.checked,
           keepStructure: !!document.getElementById('keepStructure')?.checked,
           overwrite: !!document.getElementById('overwrite')?.checked,
@@ -481,17 +495,21 @@
         try { await (window.vid2mp3?.resume?.set?.(e.target.checked) || Promise.resolve(true)); refreshResumeUI(); } catch {}
       });
       document.getElementById('resumeClear').addEventListener('click', async ()=>{
-        try { await (window.vid2mp3?.resume?.clear?.() || Promise.resolve(true)); refreshResumeUI(); toast('Queue cleared'); } catch {}
+        try {
+          await (window.vid2mp3?.resume?.clear?.() || Promise.resolve(true));
+          // Clear progress list and fileProgress map
+          progressList.innerHTML = '';
+          fileProgress.clear();
+          refreshResumeUI();
+          toast('Queue cleared');
+        } catch {}
       });
       refreshResumeUI();
 
-      // Start
-      let firstSuccessSaved = false;
-      document.getElementById('start').addEventListener('click', async () => {
-        if (!files.length) { alert('Select files first'); return; }
-        const outDir = $('#outDir').value || 'out';
-        const options = {
-          // Simple mode uses quality presets; advanced users can open Advanced
+
+      // Helper to collect all advanced options from UI
+      function getAdvancedOptions() {
+        return {
           bitrateKbps: parseInt($('#bitrate')?.value) || undefined,
           vbrLevel: parseInt($('#vbr')?.value) || undefined,
           sampleRate: parseInt($('#samplerate')?.value) || undefined,
@@ -499,26 +517,65 @@
           loudnorm: !!document.getElementById('loudnorm')?.checked,
           keepStructure: !!document.getElementById('keepStructure')?.checked,
           overwrite: !!document.getElementById('overwrite')?.checked,
-          concurrency: parseInt($('#simpleConcurrency')?.value) || 4,
+          concurrency: parseInt($('#concurrency')?.value) || 4,
           throttle: $('#throttle').value,
           autoMeta: !!document.getElementById('autoMeta')?.checked,
           preferDetected: !!document.getElementById('preferDetected')?.checked,
+          template: $('#template')?.value || '{basename}.mp3',
+          autoCover: !!document.getElementById('autoCoverEnabled')?.checked,
+          autoCoverTime: parseInt($('#autoCoverTime')?.value) || undefined,
           coverFrameSec: parseFloat(document.getElementById('coverFrameSec')?.value) || undefined,
           coverFrameRules: (document.getElementById('coverFrameRules')?.value||'').split(/\n+/).map(line=>{
             const m = line.match(/^\s*(.*?)\s*=>\s*(\d+(?:\.\d+)?)\s*$/);
             if (!m) return null;
             return { pattern: m[1], timeSec: parseFloat(m[2]) };
           }).filter(Boolean),
+          id3Title: $('#id3Title')?.value || '',
+          id3Artist: $('#id3Artist')?.value || '',
+          id3Album: $('#id3Album')?.value || '',
+          id3Genre: $('#id3Genre')?.value || '',
+          id3Date: $('#id3Date')?.value || '',
+          id3Track: $('#id3Track')?.value || '',
+          id3Comment: $('#id3Comment')?.value || '',
+          coverPath: $('#coverPath')?.value || '',
+          retry: parseInt($('#retryAttempts')?.value) || 1,
+          retryDelayMs: parseInt($('#retryDelay')?.value) || 0,
         };
+      }
+
+      // Utility: Check if a file has an audio stream using ffprobe
+      async function hasAudioStream(filePath) {
+        // Use ffprobe-static and Node.js child_process via a backend IPC if needed
+        // For now, try conversion and catch the error, or implement a backend IPC for ffprobe
+        // Here, we just skip files that previously failed with 'matches no streams'
+        // (A real implementation would use a backend IPC to ffprobe)
+        return true; // Placeholder: always true, see backend for real check
+      }
+
+      // Patch: Filter out files with no audio stream before conversion (frontend warning only)
+      async function filterFilesWithAudio(files) {
+        // In a real implementation, call a backend IPC to ffprobe each file
+        // For now, just return all files (since we can't run ffprobe in browser)
+        // You can implement a backend handler for this if needed
+        return files;
+      }
+
+      // Simple Convert button
+      document.getElementById('start').addEventListener('click', async () => {
+        if (!files.length) { alert('Select files first'); return; }
+        const outDir = $('#outDir').value || 'out';
+        // Use simple concurrency for simple mode
+        const options = getAdvancedOptions();
+        options.concurrency = parseInt($('#simpleConcurrency')?.value) || 4;
+        // Filter files with audio stream (placeholder, see above)
+        const filesWithAudio = await filterFilesWithAudio(files);
+        if (!filesWithAudio.length) {
+          toast('No files with audio streams found.');
+          return;
+        }
         document.getElementById('summary').textContent = 'Working…';
         try {
-          // Remove auto-save on first success to avoid double toast
-          // const off = window.vid2mp3?.onProgress?.((evt)=>{
-          //   if (evt.type === 'done' && evt.ok && !firstSuccessSaved) {
-          //     firstSuccessSaved = true; saveSettingsFromUI();
-          //   }
-          // });
-          const { results } = await (window.vid2mp3?.startConvert?.({ inputs: files, outDir, options }) || Promise.resolve({ results: [] }));
+          const { results } = await (window.vid2mp3?.startConvert?.({ inputs: filesWithAudio, outDir, options }) || Promise.resolve({ results: [] }));
           const ok = results.filter(r=>r.ok).length; const fail = results.length - ok;
           if (fail > 0) {
             document.getElementById('summary').textContent = `Done: ${ok} ok, ${fail} failed`;
@@ -527,6 +584,44 @@
           }
         } catch (e) {
           document.getElementById('summary').textContent = 'Failed'; toast('Failed to start: ' + (e && e.message || e));
+        }
+      });
+
+      // Advanced Convert button
+      document.getElementById('startAdvanced').addEventListener('click', async () => {
+        if (!files.length) { alert('Select files first'); return; }
+        const outDir = $('#outDir').value || 'out';
+        const options = getAdvancedOptions();
+        // Filter files with audio stream (placeholder, see above)
+        const filesWithAudio = await filterFilesWithAudio(files);
+        if (!filesWithAudio.length) {
+          toast('No files with audio streams found.');
+          return;
+        }
+        document.getElementById('summary').textContent = 'Working…';
+        try {
+          const { results } = await (window.vid2mp3?.startConvert?.({ inputs: filesWithAudio, outDir, options }) || Promise.resolve({ results: [] }));
+          const ok = results.filter(r=>r.ok).length; const fail = results.length - ok;
+          if (fail > 0) {
+            document.getElementById('summary').textContent = `Done: ${ok} ok, ${fail} failed`;
+          } else {
+            document.getElementById('summary').textContent = `Done: ${ok} ok, 0 failed`;
+          }
+        } catch (e) {
+          document.getElementById('summary').textContent = 'Failed'; toast('Failed to start: ' + (e && e.message || e));
+        }
+      });
+
+      // Preview Output button
+      document.getElementById('previewOutput').addEventListener('click', async () => {
+        if (!files.length) { toast('Select files first'); return; }
+        const outDir = $('#outDir').value || 'out';
+        const options = getAdvancedOptions();
+        try {
+          const preview = await (window.vid2mp3?.previewOutput?.({ inputs: files, outDir, options }) || Promise.resolve([]));
+          document.getElementById('outputPreview').textContent = preview.join('\n');
+        } catch (e) {
+          document.getElementById('outputPreview').textContent = 'Failed to preview: ' + (e && e.message || e);
         }
       });
 

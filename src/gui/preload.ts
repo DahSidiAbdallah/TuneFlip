@@ -19,6 +19,8 @@ contextBridge.exposeInMainWorld('vid2mp3', {
     get: () => ipcRenderer.invoke('settings:get'),
     save: (data: any) => ipcRenderer.invoke('settings:save', data),
   },
+  // Utility for previewing output paths (simulate only)
+  previewOutput: (payload: any) => ipcRenderer.invoke('preview-output', payload),
   resume: {
     get: () => ipcRenderer.invoke('resume:get'),
     set: (enabled: boolean) => ipcRenderer.invoke('resume:set', { enabled }),
