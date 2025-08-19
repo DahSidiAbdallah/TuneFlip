@@ -114,9 +114,16 @@
         <div class="row-inline">
           <button class="btn" id="pickFiles">Select files</button>
           <div id="filesCount" class="badge">0 files</div>
+          <button class="btn" id="openOutBtn" disabled>Open Output Folder</button>
         </div>
-        <div id="dropZone" class="small" style="margin-top:8px;border:1px dashed #374151;border-radius:8px;padding:16px;text-align:center">Drop files here</div>
-        <div id="files" style="margin-top:8px"></div>
+        <div id="dropZone" class="small" tabindex="0" role="button" aria-label="Drop audio or video files and folders here" style="margin-top:8px;border:2px dashed #888;border-radius:10px;padding:24px;text-align:center;transition:background 120ms, border-color 120ms;">Drop files or folders here</div>
+        <input id="fileInput" type="file" multiple webkitdirectory style="display:none" />
+        <ul id="queueList" class="queue"></ul>
+        <div class="queue-actions">
+          <button id="pauseBtn" class="btn" disabled>Pause</button>
+          <button id="resumeBtn" class="btn" disabled>Resume</button>
+          <span id="etaLabel" aria-live="polite"></span>
+        </div>
       </div>
 
       <!-- Simple controls -->
@@ -260,15 +267,46 @@
         </details>
 
           <div class="card" style="margin-top:12px">
-            <div class="row-inline">
-              <strong style="flex:1">Presets</strong>
-              <input type="text" id="presetName" placeholder="My preset" style="flex:2" />
-              <button class="btn secondary" id="savePreset">Save</button>
-              <button class="btn secondary" id="deletePreset">Delete</button>
-              <select id="presetSelect" style="flex:2"></select>
-              <button class="btn" id="loadPreset">Load</button>
+            <div class="presets-bar row-inline">
+              <select id="presetSelect"></select>
+              <input id="presetName" placeholder="Preset name" />
+              <button id="presetSave">Save</button>
+              <button id="presetLoad">Load</button>
+              <button id="presetDel">Delete</button>
+              <button id="presetExport">Export</button>
+              <button id="presetImport">Import</button>
+              <button id="presetSetDefault">Set as Default</button>
             </div>
           </div>
+      <!-- Audio Preview Bar -->
+      <div id="previewBar" style="margin:16px 0;display:flex;align-items:center;gap:8px;">
+        <audio id="audioPreview" controls style="max-width:300px;"></audio>
+        <button id="previewIn">Preview Input</button>
+        <button id="previewOut">Preview Output</button>
+      </div>
+
+      <!-- Logs Dialog -->
+      <button id="showLogsBtn">Show logs</button>
+      <dialog id="logsDlg" style="width:70vw; max-width:900px;">
+        <h3>Logs</h3>
+        <textarea id="logsArea" style="width:100%; height:50vh" readonly></textarea>
+        <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:8px;">
+          <button id="copyLogsBtn">Copy</button>
+          <button id="clearLogsBtn">Clear</button>
+          <button id="closeLogsBtn">Close</button>
+        </div>
+      </dialog>
+
+      <!-- Global Output Format -->
+      <div style="margin:12px 0;">
+        <label for="outputFormat">Output format</label>
+        <select id="outputFormat">
+          <option value="mp3">MP3</option>
+          <option value="aac">AAC (m4a)</option>
+          <option value="ogg">OGG Vorbis</option>
+          <option value="flac">FLAC</option>
+        </select>
+      </div>
         </details>
       </div>
 
@@ -326,11 +364,11 @@
       const savedMode = localStorage.getItem('mode')||'simple'; modeSel.value = savedMode; applyMode(savedMode);
       modeSel.addEventListener('change', (e)=>{ const v = e.target.value; localStorage.setItem('mode', v); applyMode(v); });
 
-      // Drag-and-drop
+      // Drag-and-drop (with folder expansion)
       const dropZone = document.getElementById('dropZone');
       ;['dragenter','dragover'].forEach(evt => dropZone.addEventListener(evt, (e)=>{ e.preventDefault(); dropZone.style.background='#111827'; }));
       ;['dragleave','drop'].forEach(evt => dropZone.addEventListener(evt, (e)=>{ e.preventDefault(); dropZone.style.background=''; }));
-      dropZone.addEventListener('drop', (e)=>{
+      dropZone.addEventListener('drop', async (e)=>{
         const listF = Array.from((e.dataTransfer&&e.dataTransfer.files)||[])
           .map(f=>{
             let p = f.path||f.name;
@@ -339,10 +377,136 @@
           })
           .filter(Boolean);
         if (listF.length) {
-          // Log raw file paths for debugging
-          console.log('[TuneFlip Renderer] Raw dropped paths:', listF);
-          files.splice(0, files.length, ...listF);
+          // Use backend to expand folders and filter files
+          let expanded = listF;
+          if (window.vid2mp3?.expandFilesAndFolders) {
+            expanded = await window.vid2mp3.expandFilesAndFolders(listF);
+          }
+          files.splice(0, files.length, ...expanded);
           updateFiles();
+        }
+      });
+      // Output Folder Open
+      document.getElementById('openOutBtn').addEventListener('click', async () => {
+        const outDir = $('#outDir').value;
+        if (window.vid2mp3?.openOutputFolder && outDir) {
+          await window.vid2mp3.openOutputFolder(outDir);
+        } else {
+          toast('Output folder open not supported.');
+        }
+      });
+
+      // Queue Pause/Resume
+      document.getElementById('pauseBtn').addEventListener('click', async () => {
+        if (window.vid2mp3?.queue?.pause) {
+          await window.vid2mp3.queue.pause();
+          toast('Queue paused');
+        }
+      });
+      document.getElementById('resumeBtn').addEventListener('click', async () => {
+        if (window.vid2mp3?.queue?.resume) {
+          await window.vid2mp3.queue.resume();
+          toast('Queue resumed');
+        }
+      });
+
+      // Preset Import/Export/Set Default
+      document.getElementById('presetExport').addEventListener('click', async () => {
+        if (window.vid2mp3?.presets?.export) {
+          try {
+            await window.vid2mp3.presets.export();
+            toast('Presets exported');
+          } catch {
+            toast('Failed to export presets');
+          }
+        }
+      });
+      document.getElementById('presetImport').addEventListener('click', async () => {
+        if (window.vid2mp3?.presets?.import) {
+          try {
+            await window.vid2mp3.presets.import();
+            toast('Presets imported');
+            updatePresetList();
+          } catch {
+            toast('Failed to import presets');
+          }
+        }
+      });
+      document.getElementById('presetSetDefault').addEventListener('click', async () => {
+        const select = document.getElementById('presetSelect');
+        const name = select.value;
+        if (!name) return toast('Select a preset');
+        if (window.vid2mp3?.presets?.setDefault) {
+          try {
+            await window.vid2mp3.presets.setDefault(name);
+            toast('Default preset set');
+          } catch {
+            toast('Failed to set default preset');
+          }
+        }
+      });
+
+      // Audio Preview (Preview Input/Output)
+      document.getElementById('previewIn').addEventListener('click', async () => {
+        if (!files.length) return toast('Select a file first');
+        const file = files[0];
+        if (window.vid2mp3?.audioPreview) {
+          try {
+            const url = await window.vid2mp3.audioPreview(file, 'input');
+            const audio = document.getElementById('audioPreview');
+            audio.src = url;
+            audio.play();
+          } catch {
+            toast('Failed to preview input audio');
+          }
+        }
+      });
+      document.getElementById('previewOut').addEventListener('click', async () => {
+        if (!files.length) return toast('Select a file first');
+        const file = files[0];
+        if (window.vid2mp3?.audioPreview) {
+          try {
+            const url = await window.vid2mp3.audioPreview(file, 'output');
+            const audio = document.getElementById('audioPreview');
+            audio.src = url;
+            audio.play();
+          } catch {
+            toast('Failed to preview output audio');
+          }
+        }
+      });
+
+      // Logs Dialog
+      document.getElementById('showLogsBtn').addEventListener('click', async () => {
+        const dlg = document.getElementById('logsDlg');
+        dlg.showModal();
+        if (window.vid2mp3?.logs?.get) {
+          try {
+            const logText = await window.vid2mp3.logs.get();
+            document.getElementById('logsArea').value = logText;
+          } catch {
+            document.getElementById('logsArea').value = 'Failed to load logs';
+          }
+        }
+      });
+      document.getElementById('closeLogsBtn').addEventListener('click', () => {
+        document.getElementById('logsDlg').close();
+      });
+      document.getElementById('copyLogsBtn').addEventListener('click', () => {
+        const area = document.getElementById('logsArea');
+        area.select();
+        document.execCommand('copy');
+        toast('Logs copied');
+      });
+      document.getElementById('clearLogsBtn').addEventListener('click', async () => {
+        if (window.vid2mp3?.logs?.clear) {
+          try {
+            await window.vid2mp3.logs.clear();
+            document.getElementById('logsArea').value = '';
+            toast('Logs cleared');
+          } catch {
+            toast('Failed to clear logs');
+          }
         }
       });
 
@@ -703,6 +867,7 @@
         const concurrency = mode === 'advanced'
           ? parseInt($('#concurrency').value) || 4
           : parseInt($('#simpleConcurrency').value) || 4;
+        const outputFormat = document.getElementById('outputFormat').value;
         const options = {
           bitrateKbps: parseInt($('#bitrate').value) || undefined,
           vbrLevel: parseInt($('#vbr').value) || undefined,
@@ -734,7 +899,8 @@
             comment: $('#id3Comment').value || undefined,
             coverImagePath: $('#coverPath').value || undefined
           },
-          retry: { attempts: parseInt($('#retryAttempts').value) || 1, delayMs: parseInt($('#retryDelay').value) || 0 }
+          retry: { attempts: parseInt($('#retryAttempts').value) || 1, delayMs: parseInt($('#retryDelay').value) || 0 },
+          outputFormat
         };
         // Filter files with audio stream (placeholder, see above)
         const filesWithAudio = await filterFilesWithAudio(files);
