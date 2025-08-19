@@ -161,76 +161,103 @@
 
       <!-- Advanced controls -->
       <div class="card advanced" title="Full control over all conversion options.">
-        <details id="advanced">
+        <details id="advanced" open>
           <summary style="cursor:pointer">Advanced options</summary>
-          <div class="grid" style="margin-top:12px">
-            <div><label for="bitrate" title="Constant bitrate in kbps. Leave blank to use VBR.">Bitrate (kbps)</label><input type="number" id="bitrate" placeholder="192" /></div>
-            <div><label for="vbr" title="Variable bitrate level (0=best, 9=smallest). Leave blank to use CBR.">VBR (0-9)</label><input type="number" id="vbr" min="0" max="9" /></div>
-            <div><label for="samplerate" title="Audio sample rate in Hz (e.g. 44100, 48000)">Sample rate (Hz)</label><input type="number" id="samplerate" placeholder="44100" /></div>
-            <div><label for="channels" title="Number of audio channels (1=mono, 2=stereo)">Channels</label><input type="number" id="channels" placeholder="2" /></div>
-            <div><label for="trim" title="Trim audio: start[-end] in seconds. E.g. 5-65 trims to 1:05.">Trim (start[-end] sec)</label><input type="text" id="trim" placeholder="5-65" /></div>
-            <div><label for="concurrency" title="How many files to convert at once.">Concurrency</label><input type="number" id="concurrency" placeholder="4" value="4" /></div>
-            <div><label>&nbsp;</label>
-              <div class="small">
-                <label title="Apply EBU R128 loudness normalization (2-pass)"><input type="checkbox" id="loudnorm" /> Loudness normalize</label><br />
-                <label title="Preserve input folder structure in output."><input type="checkbox" id="keepStructure" /> Keep folder structure</label><br />
-                <label title="Overwrite existing files in output folder."><input type="checkbox" id="overwrite" /> Overwrite</label><br />
-                <label title="Simulate conversion without writing files."><input type="checkbox" id="dryRun" /> Dry run</label>
+          <div style="margin-top:12px">
+            <details open>
+              <summary><strong>Audio Settings</strong></summary>
+              <div class="grid">
+                <div><label for="bitrate" title="Constant bitrate in kbps. Leave blank to use VBR.">Bitrate (kbps)</label><input type="number" id="bitrate" placeholder="192" /></div>
+                <div><label for="vbr" title="Variable bitrate level (0=best, 9=smallest). Leave blank to use CBR.">VBR (0-9)</label><input type="number" id="vbr" min="0" max="9" /></div>
+                <div><label for="samplerate" title="Audio sample rate in Hz (e.g. 44100, 48000)">Sample rate (Hz)</label><input type="number" id="samplerate" placeholder="44100" /></div>
+                <div><label for="channels" title="Number of audio channels (1=mono, 2=stereo)">Channels</label><input type="number" id="channels" placeholder="2" /></div>
+                <div><label for="trim" title="Trim audio: start[-end] in seconds. E.g. 5-65 trims to 1:05.">Trim (start[-end] sec)</label><input type="text" id="trim" placeholder="5-65" /></div>
+                <div><label for="simpleConcurrency" title="How many files to convert at once. Higher = faster, but uses more CPU.">Concurrency</label><input type="number" id="simpleConcurrency" value="4" min="1" /></div>
               </div>
-            </div>
-            <div>
-              <label for="autoMeta" title="Try to detect title, artist, album, and cover from input.">Auto metadata</label>
-              <div class="small">
-                <label title="Enable automatic detection of metadata."><input type="checkbox" id="autoMeta" checked /> Detect title/artist/album/cover</label><br />
-                <label title="Use detected metadata even if manual fields are filled."><input type="checkbox" id="preferDetected" /> Prefer detected over manual</label>
+            </details>
+            <details>
+              <summary><strong>Processing Options</strong></summary>
+              <div class="grid">
+                <div class="small">
+                  <label title="Apply EBU R128 loudness normalization (2-pass)"><input type="checkbox" id="loudnorm" /> Loudness normalize</label><br />
+                  <label title="Preserve input folder structure in output."><input type="checkbox" id="keepStructure" /> Keep folder structure</label><br />
+                  <label title="Overwrite existing files in output folder."><input type="checkbox" id="overwrite" /> Overwrite</label><br />
+                  <label title="Simulate conversion without writing files."><input type="checkbox" id="dryRun" /> Dry run</label>
+                </div>
+                <div>
+                  <label for="throttle" title="Throttle conversion speed to reduce system impact.">Resource mode</label>
+                  <select id="throttle">
+                    <option value="off">Max speed</option>
+                    <option value="medium">Balanced</option>
+                    <option value="low">Low impact</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="retryAttempts" title="How many times to retry failed conversions.">Retry</label>
+                  <div class="row-inline">
+                    <input type="number" id="retryAttempts" placeholder="Retries" value="1" style="width:100px" />
+                    <input type="number" id="retryDelay" placeholder="Delay ms" value="0" style="width:120px" />
+                  </div>
+                </div>
+                <div>
+                  <label for="coverFrameSec" title="Time in seconds to extract cover frame from video.">Cover frame time (sec)</label>
+                  <input type="number" id="coverFrameSec" placeholder="5" />
+                </div>
+                <div>
+                  <label for="coverFrameRules" title="Regex pattern => time (sec), one per line. Example: ^Live => 60">Cover frame rules</label>
+                  <div class="small" title="Regex pattern => time (sec), one per line. Example: ^Live => 60">Regex pattern => time (sec), one per line. Example: ^Live => 60</div>
+                  <textarea id="coverFrameRules" rows="4" style="width:100%; background:#0f131a; color:#e6e6e6; border:1px solid #1f2937; border-radius:8px" placeholder="^Intro => 30"></textarea>
+                </div>
               </div>
-            </div>
-            <div>
-              <label for="template" title="Template for output filenames. Use tokens like {basename}.">Output template</label>
-              <div class="row-inline">
-                <input type="text" id="template" placeholder="{basename}.mp3" style="flex:1" />
-                <select id="tokenSel">
-                  <option value="">Insert token…</option>
-                  <option value="{basename}">{basename}</option>
-                  <option value="{ext}">{ext}</option>
-                  <option value="{bitrate}">{bitrate}</option>
-                  <option value="{vbr}">{vbr}</option>
-                </select>
+            </details>
+            <details>
+              <summary><strong>Metadata Tags</strong></summary>
+              <div class="grid">
+                <div><label for="id3Title" title="Set custom title for output files.">ID3: Title</label><input type="text" id="id3Title" /></div>
+                <div><label for="id3Artist" title="Set custom artist for output files.">ID3: Artist</label><input type="text" id="id3Artist" /></div>
+                <div><label for="id3Album" title="Set custom album for output files.">ID3: Album</label><input type="text" id="id3Album" /></div>
+                <div><label for="id3Genre" title="Set custom genre for output files.">ID3: Genre</label><input type="text" id="id3Genre" /></div>
+                <div><label for="id3Date" title="Set custom date for output files.">ID3: Date</label><input type="text" id="id3Date" /></div>
+                <div><label for="id3Track" title="Set custom track number for output files.">ID3: Track</label><input type="text" id="id3Track" /></div>
+                <div><label for="id3Comment" title="Set custom comment for output files.">ID3: Comment</label><input type="text" id="id3Comment" /></div>
+                <div><label for="coverPath" title="Path to a custom cover image file.">Cover image</label><input type="text" id="coverPath" placeholder="C:\\path\\cover.jpg" /></div>
+                <div>
+                  <label for="autoMeta" title="Try to detect title, artist, album, and cover from input.">Auto metadata</label>
+                  <div class="small">
+                    <label title="Enable automatic detection of metadata."><input type="checkbox" id="autoMeta" checked /> Detect title/artist/album/cover</label><br />
+                    <label title="Use detected metadata even if manual fields are filled."><input type="checkbox" id="preferDetected" /> Prefer detected over manual</label>
+                  </div>
+                </div>
               </div>
-              <small class="file" title="Available tokens for output filenames.">Tokens: {basename} {ext} {bitrate} {vbr}</small>
-            </div>
-            <div>
-              <label for="autoCoverEnabled" title="Extract cover image from video at a specific time.">Auto cover</label>
-              <div class="row-inline">
-                <label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="autoCoverEnabled" /> Enable</label>
-                <input type="number" id="autoCoverTime" placeholder="5" title="Time (sec)" />
+            </details>
+            <details>
+              <summary><strong>Output Template & Cover</strong></summary>
+              <div class="grid">
+                <div>
+                  <label for="template" title="Template for output filenames. Use tokens like {basename}.">Output template</label>
+                  <div class="row-inline">
+                    <input type="text" id="template" placeholder="{basename}.mp3" style="flex:1" />
+                    <select id="tokenSel">
+                      <option value="">Insert token…</option>
+                      <option value="{basename}">{basename}</option>
+                      <option value="{ext}">{ext}</option>
+                      <option value="{bitrate}">{bitrate}</option>
+                      <option value="{vbr}">{vbr}</option>
+                    </select>
+                  </div>
+                  <small class="file" title="Available tokens for output filenames.">Tokens: {basename} {ext} {bitrate} {vbr}</small>
+                </div>
+                <div>
+                  <label for="autoCoverEnabled" title="Extract cover image from video at a specific time.">Auto cover</label>
+                  <div class="row-inline">
+                    <label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="autoCoverEnabled" /> Enable</label>
+                    <input type="number" id="autoCoverTime" placeholder="5" title="Time (sec)" />
+                  </div>
+                </div>
               </div>
-            </div>
-            <div><label for="id3Title" title="Set custom title for output files.">ID3: Title</label><input type="text" id="id3Title" /></div>
-            <div><label for="id3Artist" title="Set custom artist for output files.">ID3: Artist</label><input type="text" id="id3Artist" /></div>
-            <div><label for="id3Album" title="Set custom album for output files.">ID3: Album</label><input type="text" id="id3Album" /></div>
-            <div><label for="id3Genre" title="Set custom genre for output files.">ID3: Genre</label><input type="text" id="id3Genre" /></div>
-            <div><label for="id3Date" title="Set custom date for output files.">ID3: Date</label><input type="text" id="id3Date" /></div>
-            <div><label for="id3Track" title="Set custom track number for output files.">ID3: Track</label><input type="text" id="id3Track" /></div>
-            <div><label for="id3Comment" title="Set custom comment for output files.">ID3: Comment</label><input type="text" id="id3Comment" /></div>
-            <div><label for="coverPath" title="Path to a custom cover image file.">Cover image</label><input type="text" id="coverPath" placeholder="C:\\path\\cover.jpg" /></div>
-            <div>
-              <label for="retryAttempts" title="How many times to retry failed conversions.">Retry</label>
-              <div class="row-inline">
-                <input type="number" id="retryAttempts" placeholder="Retries" value="1" style="width:100px" />
-                <input type="number" id="retryDelay" placeholder="Delay ms" value="0" style="width:120px" />
-              </div>
-            </div>
-            <div>
-              <label for="coverFrameSec" title="Time in seconds to extract cover frame from video.">Cover frame time (sec)</label>
-              <input type="number" id="coverFrameSec" placeholder="5" />
-            </div>
-            <div>
-              <label for="coverFrameRules" title="Regex pattern => time (sec), one per line. Example: ^Live => 60">Cover frame rules</label>
-              <div class="small" title="Regex pattern => time (sec), one per line. Example: ^Live => 60">Regex pattern => time (sec), one per line. Example: ^Live => 60</div>
-              <textarea id="coverFrameRules" rows="4" style="width:100%; background:#0f131a; color:#e6e6e6; border:1px solid #1f2937; border-radius:8px" placeholder="^Intro => 30"></textarea>
-            </div>
+            </details>
           </div>
+        </details>
 
           <div class="card" style="margin-top:12px">
             <div class="row-inline">
