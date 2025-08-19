@@ -36,5 +36,16 @@ contextBridge.exposeInMainWorld('vid2mp3', {
   queue: {
     pause: () => ipcRenderer.invoke('queue:pause'),
     resume: () => ipcRenderer.invoke('queue:resume'),
+  },
+  // Add the missing settings API
+  settings: {
+    get: () => ipcRenderer.invoke('settings:get'),
+    save: (data) => ipcRenderer.invoke('settings:save', data)
+  },
+  // Also add resume API
+  resume: {
+    get: () => ipcRenderer.invoke('resume:get'),
+    set: (enabled) => ipcRenderer.invoke('resume:set', { enabled }),
+    clear: () => ipcRenderer.invoke('resume:clear')
   }
 });

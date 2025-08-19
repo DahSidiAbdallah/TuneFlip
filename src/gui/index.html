@@ -486,8 +486,98 @@
           toast('Failed to load settings');
         }
       });
+
+      // --- Preset Management ---
+      async function updatePresetList() {
+        const presets = await (window.vid2mp3?.presets?.list?.() || Promise.resolve({}));
+        const select = document.getElementById('presetSelect');
+        select.innerHTML = '';
+        for (const name in presets) {
+          const opt = document.createElement('option');
+          opt.value = name;
+          opt.textContent = name;
+          select.appendChild(opt);
+        }
+      }
+
+      document.getElementById('savePreset').addEventListener('click', async () => {
+        const name = document.getElementById('presetName').value.trim();
+        if (!name) return toast('Please enter a preset name');
+        // Gather current settings into an options object:
+        const options = await (window.vid2mp3?.settings?.get?.() || Promise.resolve({}));
+        try {
+          await window.vid2mp3.presets.save(name, options);
+          toast(`Preset "${name}" saved`);
+          updatePresetList();
+        } catch {
+          toast('Failed to save preset');
+        }
+      });
+
+      document.getElementById('loadPreset').addEventListener('click', async () => {
+        const select = document.getElementById('presetSelect');
+        const name = select.value;
+        if (!name) return toast('Please select a preset');
+        try {
+          const allPresets = await window.vid2mp3.presets.list();
+          const presetOptions = allPresets[name];
+          if (presetOptions) {
+            // Apply each option to the corresponding field (reusing loadSettingsIntoUI logic):
+            if (presetOptions.outDir) $('#outDir').value = presetOptions.outDir;
+            if (presetOptions.quality) $('#quality').value = presetOptions.quality;
+            if (presetOptions.bitrateKbps) $('#bitrate').value = presetOptions.bitrateKbps;
+            if (presetOptions.vbrLevel) $('#vbr').value = presetOptions.vbrLevel;
+            if (presetOptions.sampleRate) $('#samplerate').value = presetOptions.sampleRate;
+            if (presetOptions.channels) $('#channels').value = presetOptions.channels;
+            if (presetOptions.concurrency) $('#concurrency').value = presetOptions.concurrency;
+            if (presetOptions.retry && presetOptions.retry.attempts !== undefined) $('#retryAttempts').value = presetOptions.retry.attempts;
+            if (presetOptions.retry && presetOptions.retry.delayMs !== undefined) $('#retryDelay').value = presetOptions.retry.delayMs;
+            if (presetOptions.loudnorm !== undefined) $('#loudnorm').checked = !!presetOptions.loudnorm;
+            if (presetOptions.keepStructure !== undefined) $('#keepStructure').checked = !!presetOptions.keepStructure;
+            if (presetOptions.overwrite !== undefined) $('#overwrite').checked = !!presetOptions.overwrite;
+            if (presetOptions.dryRun !== undefined) $('#dryRun').checked = !!presetOptions.dryRun;
+            if (presetOptions.template) $('#template').value = presetOptions.template;
+            if (presetOptions.autoMeta !== undefined) $('#autoMeta').checked = !!presetOptions.autoMeta;
+            if (presetOptions.preferDetected !== undefined) $('#preferDetected').checked = !!presetOptions.preferDetected;
+            if (presetOptions.autoCoverEnabled !== undefined) $('#autoCoverEnabled').checked = !!presetOptions.autoCoverEnabled;
+            if (presetOptions.autoCoverTime !== undefined) $('#autoCoverTime').value = presetOptions.autoCoverTime;
+            if (presetOptions.coverFrameSec !== undefined) $('#coverFrameSec').value = presetOptions.coverFrameSec;
+            if (Array.isArray(presetOptions.coverFrameRules)) {
+              const lines = presetOptions.coverFrameRules.map(r=>`${r.pattern} => ${r.timeSec}`).join('\n');
+              document.getElementById('coverFrameRules').value = lines;
+            }
+            if (presetOptions.id3Title !== undefined) $('#id3Title').value = presetOptions.id3Title;
+            if (presetOptions.id3Artist !== undefined) $('#id3Artist').value = presetOptions.id3Artist;
+            if (presetOptions.id3Album !== undefined) $('#id3Album').value = presetOptions.id3Album;
+            if (presetOptions.id3Genre !== undefined) $('#id3Genre').value = presetOptions.id3Genre;
+            if (presetOptions.id3Date !== undefined) $('#id3Date').value = presetOptions.id3Date;
+            if (presetOptions.id3Track !== undefined) $('#id3Track').value = presetOptions.id3Track;
+            if (presetOptions.id3Comment !== undefined) $('#id3Comment').value = presetOptions.id3Comment;
+            if (presetOptions.coverPath !== undefined) $('#coverPath').value = presetOptions.coverPath;
+            toast(`Preset "${name}" loaded`);
+          }
+        } catch {
+          toast('Failed to load preset');
+        }
+      });
+
+      document.getElementById('deletePreset').addEventListener('click', async () => {
+        const select = document.getElementById('presetSelect');
+        const name = select.value;
+        if (!name) return;
+        if (!confirm(`Delete preset "${name}"?`)) return;
+        try {
+          await window.vid2mp3.presets.delete(name);
+          toast(`Preset "${name}" deleted`);
+          updatePresetList();
+        } catch {
+          toast('Failed to delete preset');
+        }
+      });
+
       // Auto-load on startup
       loadSettingsIntoUI();
+      updatePresetList();
 
       // Resume controls
       async function refreshResumeUI() {
