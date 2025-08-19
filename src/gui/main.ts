@@ -1,9 +1,7 @@
 // Add preview-output handler for output preview before conversion
 ipcMain.handle('preview-output', async (_e, payload) => {
-  // Simulate output file names based on inputs, outDir, template, and options
+  console.log('[TuneFlip Debug] preview-output payload:', payload);
   const { inputs, outDir, options } = payload as { inputs: string[]; outDir: string; options: any };
-  // Use the same logic as in convertPaths to generate output paths, but do not run ffmpeg
-  // This is a simplified version for preview only
   const template = options.template || '{basename}.mp3';
   const preview = (inputs || []).map(input => {
     const ext = path.extname(input).replace(/^\./, '');
@@ -13,6 +11,7 @@ ipcMain.handle('preview-output', async (_e, payload) => {
     if (options.vbrLevel) outName = outName.replace('{vbr}', String(options.vbrLevel));
     return path.join(outDir, outName);
   });
+  console.log('[TuneFlip Debug] preview-output result:', preview);
   return preview;
 });
 import { app, BrowserWindow, ipcMain, dialog } from 'electron';
@@ -234,9 +233,14 @@ function writeSettings(data: Record<string, any>) {
 }
 
 ipcMain.handle('settings:get', async () => {
-  return readSettings();
+  const settings = readSettings();
+  console.log('[TuneFlip Debug] settings:get path:', settingsFile());
+  console.log('[TuneFlip Debug] settings:get result:', settings);
+  return settings;
 });
 ipcMain.handle('settings:save', async (_e, payload) => {
+  console.log('[TuneFlip Debug] settings:save path:', settingsFile());
+  console.log('[TuneFlip Debug] settings:save payload:', payload);
   writeSettings(payload || {});
   return true;
 });
