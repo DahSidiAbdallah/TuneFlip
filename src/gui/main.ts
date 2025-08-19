@@ -1,3 +1,108 @@
+// ==== Utils for media file filtering & folder recursion ====
+import { clipboard, shell, Notification, Tray, Menu, nativeImage } from 'electron';
+const SUPPORTED_EXTS = new Set(['.mp3','.wav','.m4a','.aac','.flac','.ogg','.opus','.wma','.webm','.mp4','.mkv','.mov','.avi','.wmv']);
+function isSupported(p: string) { return SUPPORTED_EXTS.has(path.extname(p).toLowerCase()); }
+function walkDir(startPath: string, out: string[] = []) {
+  const stats = fs.statSync(startPath);
+  if (stats.isFile()) {
+    if (isSupported(startPath)) out.push(startPath);
+    return out;
+  }
+  if (stats.isDirectory()) {
+    for (const name of fs.readdirSync(startPath)) {
+      walkDir(path.join(startPath, name), out);
+    }
+  }
+  return out;
+}
+// Expand any mix of files/folders to a flat supported file list
+ipcMain.handle('fs:expandPaths', async (_e, paths) => {
+  const out: string[] = [];
+  for (const p of paths) {
+    try { walkDir(p, out); } catch { /* ignore bad paths */ }
+  }
+  // Remove dupes
+  return Array.from(new Set(out));
+});
+
+// 1) Open output folder / show file
+ipcMain.handle('os:openPath', (_e, p) => shell.openPath(p));
+ipcMain.handle('os:showItem', (_e, p) => shell.showItemInFolder(p));
+
+// 2) System notification
+ipcMain.handle('sys:notify', (_e, { title, body }) => {
+  new Notification({ title: title || 'TuneFlip', body: body || '' }).show();
+});
+
+// 3) Window progress (taskbar/dock)
+ipcMain.handle('sys:setProgress', (_e, val) => {
+  const win = BrowserWindow.getAllWindows()[0];
+  if (!win) return;
+  // val in [0..1] or -1 for indeterminate, null to clear
+  win.setProgressBar(val == null ? -1 : val);
+});
+
+// 4) Tray (optional)
+let tray: Tray | null = null;
+ipcMain.handle('sys:traySet', (_e, { visible, text, tooltip }) => {
+  if (visible && !tray) {
+    const icon = nativeImage.createFromPath(path.join(__dirname, 'iconTemplate.png'));
+    tray = new Tray(icon.isEmpty() ? nativeImage.createEmpty() : icon);
+    tray.setToolTip(tooltip || 'TuneFlip');
+    tray.setTitle(text || '');
+    const menu = Menu.buildFromTemplate([
+      { label: 'Show', click: () => BrowserWindow.getAllWindows()[0]?.show() },
+      { label: 'Quit', click: () => app.quit() }
+    ]);
+    tray.setContextMenu(menu);
+  } else if (!visible && tray) {
+    tray.destroy();
+    tray = null;
+  } else if (tray) {
+    if (tooltip != null) tray.setToolTip(tooltip);
+    if (text != null) tray.setTitle(text);
+  }
+});
+
+// 5) Presets storage & default (import/export)
+const PRESETS_PATH = path.join(app.getPath('userData'), 'presets.json');
+const SETTINGS_PATH = path.join(app.getPath('userData'), 'settings.json');
+function readJSON(p: string) { try { return JSON.parse(fs.readFileSync(p,'utf8')); } catch { return {}; } }
+function writeJSON(p: string, obj: any) { fs.writeFileSync(p, JSON.stringify(obj, null, 2)); }
+ipcMain.handle('presets:list', () => readJSON(PRESETS_PATH));
+ipcMain.handle('presets:save', (_e, {name, data}) => { if (!name) return; const all = readJSON(PRESETS_PATH); all[name] = data; writeJSON(PRESETS_PATH, all); });
+ipcMain.handle('presets:del', (_e, name) => { const all = readJSON(PRESETS_PATH); delete all[name]; writeJSON(PRESETS_PATH, all); });
+ipcMain.handle('presets:export', async (_e, name) => {
+  const all = readJSON(PRESETS_PATH);
+  if (!name || !all[name]) return;
+  const res = await dialog.showSaveDialog({ filters:[{ name:'JSON', extensions:['json'] }], defaultPath:`${name}.json` });
+  if (res.canceled || !res.filePath) return;
+  fs.writeFileSync(res.filePath, JSON.stringify(all[name], null, 2));
+});
+ipcMain.handle('presets:import', async () => {
+  const res = await dialog.showOpenDialog({ filters:[{ name:'JSON', extensions:['json'] }], properties:['openFile'] });
+  if (res.canceled || !res.filePaths?.[0]) return;
+  const data = JSON.parse(fs.readFileSync(res.filePaths[0], 'utf8'));
+  const name = path.parse(res.filePaths[0]).name;
+  const all = readJSON(PRESETS_PATH); all[name] = data; writeJSON(PRESETS_PATH, all);
+  return { name, data };
+});
+ipcMain.handle('presets:setDefault', (_e, name) => { const s = readJSON(SETTINGS_PATH); s.__defaultPreset = name || null; writeJSON(SETTINGS_PATH, s); });
+ipcMain.handle('presets:getDefault', () => readJSON(SETTINGS_PATH).__defaultPreset || null);
+
+// 6) Logs
+const LOG_PATH = path.join(app.getPath('userData'), 'tuneflip.log');
+function appendLog(line: string) { fs.appendFileSync(LOG_PATH, `[${new Date().toISOString()}] ${line}\n`); }
+ipcMain.handle('logs:getRecent', () => { try { return fs.readFileSync(LOG_PATH, 'utf8'); } catch { return ''; } });
+ipcMain.handle('logs:clear', () => { try { fs.unlinkSync(LOG_PATH); } catch {} });
+ipcMain.handle('logs:copy', (_e, txt) => clipboard.writeText(txt || ''));
+
+// 7) Queue pause / resume (bridge to your backend)
+declare global {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  interface GlobalThis { __queuePause?: () => void; __queueResume?: () => void; [key: string]: any; }
+}
+// Removed duplicate handlers for 'queue:pause' and 'queue:resume'.
 // Add preview-output handler for output preview before conversion
 ipcMain.handle('preview-output', async (_e, payload) => {
   console.log('[TuneFlip Debug] preview-output payload:', payload);
@@ -178,8 +283,7 @@ ipcMain.handle('start-convert', async (e, payload) => {
   return { results };
 });
 
-ipcMain.handle('queue:pause', () => { __paused = true; return true; });
-ipcMain.handle('queue:resume', () => { __paused = false; return true; });
+// Removed duplicate handlers for 'queue:pause' and 'queue:resume'.
 
 ipcMain.handle('export-logs', async (_e, { content }) => {
   const res = await dialog.showSaveDialog({ filters: [{ name: 'Text', extensions: ['txt','log']}] });
@@ -205,15 +309,7 @@ function writePresets(data: Record<string, any>) {
   fs.writeFileSync(p, JSON.stringify(data, null, 2), 'utf8');
 }
 
-ipcMain.handle('presets:list', async () => {
-  return readPresets();
-});
-ipcMain.handle('presets:save', async (_e, { name, options }) => {
-  const all = readPresets();
-  all[name] = options;
-  writePresets(all);
-  return true;
-});
+// Removed duplicate handlers for 'presets:list' and 'presets:save'.
 
 // Settings stored in userData/settings.json
 function settingsFile() {
