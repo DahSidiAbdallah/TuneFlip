@@ -387,55 +387,59 @@
 
       // Settings helpers
     async function loadSettingsIntoUI() {
-      const s = await (window.vid2mp3?.settings?.get?.() || Promise.resolve({}));
-      if (s.outDir) $('#outDir').value = s.outDir;
-      if (s.quality) $('#quality').value = s.quality;
-      if (s.simpleConcurrency != null) $('#simpleConcurrency').value = s.simpleConcurrency;
-      if (s.throttle) $('#throttle').value = s.throttle;
-      // Advanced
-      if (s.bitrate != null) $('#bitrate').value = s.bitrate;
-      if (s.vbr != null) $('#vbr').value = s.vbr;
-      if (s.sampleRate != null) $('#samplerate').value = s.sampleRate;
-      if (s.channels != null) $('#channels').value = s.channels;
-      if (s.concurrency != null) $('#concurrency').value = s.concurrency;
-      if (s.retryAttempts != null) $('#retryAttempts').value = s.retryAttempts;
-      if (s.retryDelay != null) $('#retryDelay').value = s.retryDelay;
-      if (s.loudnorm != null) $('#loudnorm').checked = !!s.loudnorm;
-      if (s.keepStructure != null) $('#keepStructure').checked = !!s.keepStructure;
-      if (s.overwrite != null) $('#overwrite').checked = !!s.overwrite;
-      if (s.dryRun != null) $('#dryRun').checked = !!s.dryRun;
-      if (s.template != null) $('#template').value = s.template;
-      if (s.autoMeta != null) $('#autoMeta').checked = !!s.autoMeta;
-      if (s.preferDetected != null) $('#preferDetected').checked = !!s.preferDetected;
-      if (s.autoCoverEnabled != null) $('#autoCoverEnabled').checked = !!s.autoCoverEnabled;
-      if (s.autoCoverTime != null) $('#autoCoverTime').value = s.autoCoverTime;
-      if (s.coverFrameSec != null) $('#coverFrameSec').value = s.coverFrameSec;
+  console.log('[TuneFlip Debug] Calling settings.get');
+  const s = await (window.vid2mp3?.settings?.get?.() || Promise.resolve({}));
+  console.log('[TuneFlip Debug] settings.get result:', s);
+      if (s.outDir !== undefined) $('#outDir').value = s.outDir;
+      if (s.quality !== undefined) $('#quality').value = s.quality;
+      if (s.simpleConcurrency !== undefined) $('#simpleConcurrency').value = s.simpleConcurrency;
+      if (s.throttle !== undefined) $('#throttle').value = s.throttle;
+      // Advanced (map backend fields to UI fields)
+      if (s.bitrateKbps !== undefined) $('#bitrate').value = s.bitrateKbps;
+      if (s.vbrLevel !== undefined) $('#vbr').value = s.vbrLevel;
+      if (s.sampleRate !== undefined) $('#samplerate').value = s.sampleRate;
+      if (s.channels !== undefined) $('#channels').value = s.channels;
+      if (s.concurrency !== undefined) $('#concurrency').value = s.concurrency;
+      if (s.retry && s.retry.attempts !== undefined) $('#retryAttempts').value = s.retry.attempts;
+      if (s.retry && s.retry.delayMs !== undefined) $('#retryDelay').value = s.retry.delayMs;
+      if (s.loudnorm !== undefined) $('#loudnorm').checked = !!s.loudnorm;
+      if (s.keepStructure !== undefined) $('#keepStructure').checked = !!s.keepStructure;
+      if (s.overwrite !== undefined) $('#overwrite').checked = !!s.overwrite;
+      if (s.dryRun !== undefined) $('#dryRun').checked = !!s.dryRun;
+      if (s.template !== undefined) $('#template').value = s.template;
+      if (s.autoMeta !== undefined) $('#autoMeta').checked = !!s.autoMeta;
+      if (s.preferDetected !== undefined) $('#preferDetected').checked = !!s.preferDetected;
+      if (s.autoCoverEnabled !== undefined) $('#autoCoverEnabled').checked = !!s.autoCoverEnabled;
+      if (s.autoCoverTime !== undefined) $('#autoCoverTime').value = s.autoCoverTime;
+      if (s.coverFrameSec !== undefined) $('#coverFrameSec').value = s.coverFrameSec;
       if (Array.isArray(s.coverFrameRules)) {
         const lines = s.coverFrameRules.map(r=>`${r.pattern} => ${r.timeSec}`).join('\n');
         document.getElementById('coverFrameRules').value = lines;
       }
-      if (s.id3Title) $('#id3Title').value = s.id3Title;
-      if (s.id3Artist) $('#id3Artist').value = s.id3Artist;
-      if (s.id3Album) $('#id3Album').value = s.id3Album;
-      if (s.id3Genre) $('#id3Genre').value = s.id3Genre;
-      if (s.id3Date) $('#id3Date').value = s.id3Date;
-      if (s.id3Track) $('#id3Track').value = s.id3Track;
-      if (s.id3Comment) $('#id3Comment').value = s.id3Comment;
-      if (s.coverPath) $('#coverPath').value = s.coverPath;
+      if (s.id3Title !== undefined) $('#id3Title').value = s.id3Title;
+      if (s.id3Artist !== undefined) $('#id3Artist').value = s.id3Artist;
+      if (s.id3Album !== undefined) $('#id3Album').value = s.id3Album;
+      if (s.id3Genre !== undefined) $('#id3Genre').value = s.id3Genre;
+      if (s.id3Date !== undefined) $('#id3Date').value = s.id3Date;
+      if (s.id3Track !== undefined) $('#id3Track').value = s.id3Track;
+      if (s.id3Comment !== undefined) $('#id3Comment').value = s.id3Comment;
+      if (s.coverPath !== undefined) $('#coverPath').value = s.coverPath;
     }
       async function saveSettingsFromUI() {
-        const data = {
+  const data = {
           outDir: $('#outDir').value,
           quality: $('#quality').value,
           simpleConcurrency: parseInt($('#simpleConcurrency').value)||4,
           throttle: $('#throttle').value,
-          bitrate: parseInt($('#bitrate')?.value)||'',
-          vbr: parseInt($('#vbr')?.value)||'',
-          sampleRate: parseInt($('#samplerate')?.value)||'',
-          channels: parseInt($('#channels')?.value)||'',
+          bitrateKbps: parseInt($('#bitrate')?.value)||undefined,
+          vbrLevel: parseInt($('#vbr')?.value)||undefined,
+          sampleRate: parseInt($('#samplerate')?.value)||undefined,
+          channels: parseInt($('#channels')?.value)||undefined,
           concurrency: parseInt($('#concurrency')?.value)||4,
-          retryAttempts: parseInt($('#retryAttempts')?.value)||1,
-          retryDelay: parseInt($('#retryDelay')?.value)||0,
+          retry: {
+            attempts: parseInt($('#retryAttempts')?.value)||1,
+            delayMs: parseInt($('#retryDelay')?.value)||0
+          },
           loudnorm: !!document.getElementById('loudnorm')?.checked,
           keepStructure: !!document.getElementById('keepStructure')?.checked,
           overwrite: !!document.getElementById('overwrite')?.checked,
@@ -444,8 +448,8 @@
           preferDetected: !!document.getElementById('preferDetected')?.checked,
           template: $('#template')?.value||'',
           autoCoverEnabled: !!document.getElementById('autoCoverEnabled')?.checked,
-          autoCoverTime: parseInt($('#autoCoverTime')?.value)||'',
-          coverFrameSec: parseInt($('#coverFrameSec')?.value)||'',
+          autoCoverTime: parseInt($('#autoCoverTime')?.value)||undefined,
+          coverFrameSec: parseInt($('#coverFrameSec')?.value)||undefined,
           coverFrameRules: (document.getElementById('coverFrameRules')?.value||'').split(/\n+/).map(line=>{
             const m = line.match(/^\s*(.*?)\s*=>\s*(\d+(?:\.\d+)?)\s*$/);
             if (!m) return null;
@@ -460,14 +464,16 @@
           id3Comment: $('#id3Comment')?.value||'',
           coverPath: $('#coverPath')?.value||'',
         };
-        await (window.vid2mp3?.settings?.save?.(data) || Promise.resolve(true));
-        await loadSettingsIntoUI(); // reload UI after save
+  console.log('[TuneFlip Debug] Calling settings.save with:', data);
+  await (window.vid2mp3?.settings?.save?.(data) || Promise.resolve(true));
+  await loadSettingsIntoUI(); // reload UI after save
       }
       document.getElementById('saveSettings').addEventListener('click', async () => {
         try {
           await saveSettingsFromUI();
           toast('Settings saved');
-        } catch {
+        } catch (e) {
+          console.error('[TuneFlip Debug] Save settings error:', e);
           toast('Failed to save settings');
         }
       });
@@ -475,7 +481,8 @@
         try {
           await loadSettingsIntoUI();
           toast('Settings loaded');
-        } catch {
+        } catch (e) {
+          console.error('[TuneFlip Debug] Load settings error:', e);
           toast('Failed to load settings');
         }
       });
@@ -530,16 +537,20 @@
             if (!m) return null;
             return { pattern: m[1], timeSec: parseFloat(m[2]) };
           }).filter(Boolean),
-          id3Title: $('#id3Title')?.value || '',
-          id3Artist: $('#id3Artist')?.value || '',
-          id3Album: $('#id3Album')?.value || '',
-          id3Genre: $('#id3Genre')?.value || '',
-          id3Date: $('#id3Date')?.value || '',
-          id3Track: $('#id3Track')?.value || '',
-          id3Comment: $('#id3Comment')?.value || '',
-          coverPath: $('#coverPath')?.value || '',
-          retry: parseInt($('#retryAttempts')?.value) || 1,
-          retryDelayMs: parseInt($('#retryDelay')?.value) || 0,
+          metadata: {
+            title: $('#id3Title')?.value || '',
+            artist: $('#id3Artist')?.value || '',
+            album: $('#id3Album')?.value || '',
+            genre: $('#id3Genre')?.value || '',
+            date: $('#id3Date')?.value || '',
+            track: $('#id3Track')?.value || '',
+            comment: $('#id3Comment')?.value || '',
+            coverImagePath: $('#coverPath')?.value || ''
+          },
+          retry: {
+            attempts: parseInt($('#retryAttempts')?.value) || 1,
+            delayMs: parseInt($('#retryDelay')?.value) || 0
+          }
         };
       }
 
@@ -617,10 +628,13 @@
         if (!files.length) { toast('Select files first'); return; }
         const outDir = $('#outDir').value || 'out';
         const options = getAdvancedOptions();
+        console.log('[TuneFlip Debug] Calling previewOutput with:', { inputs: files, outDir, options });
         try {
           const preview = await (window.vid2mp3?.previewOutput?.({ inputs: files, outDir, options }) || Promise.resolve([]));
+          console.log('[TuneFlip Debug] previewOutput result:', preview);
           document.getElementById('outputPreview').textContent = preview.join('\n');
         } catch (e) {
+          console.error('[TuneFlip Debug] Preview output error:', e);
           document.getElementById('outputPreview').textContent = 'Failed to preview: ' + (e && e.message || e);
         }
       });
