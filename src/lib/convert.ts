@@ -38,6 +38,7 @@ export type ConvertOptions = {
   };
   // Output naming template e.g. "{basename}-{bitrate}k.mp3"; supports {basename},{ext},{vbr},{bitrate}
   template?: string;
+  format?: string;
   // Auto extract a frame as cover if no cover provided
   autoCover?: { enabled: boolean; timeSec?: number };
   // Retry settings
@@ -54,10 +55,11 @@ export type ConvertResult = {
 };
 
 const VIDEO_EXTS = ['.mp4', '.mov', '.mkv', '.avi', '.webm', '.flv', '.wmv', '.m4v', '.3gp'];
+const AUDIO_EXTS = ['.mp3','.wav','.m4a','.aac','.flac','.ogg','.opus','.wma'];
 
-function isVideoLike(path: string) {
+function isMediaLike(path: string) {
   const ext = extname(path).toLowerCase();
-  return VIDEO_EXTS.includes(ext);
+  return VIDEO_EXTS.includes(ext) || AUDIO_EXTS.includes(ext);
 }
 
 function parseTrim(trim?: string): { start?: number; end?: number } {
@@ -147,10 +149,10 @@ async function convertPaths(inputs: string[], opts: ConvertOptions): Promise<Con
     ? await fg(patterns, { absolute: true, onlyFiles: true, unique: true, suppressErrors: true }) as unknown as string[]
     : [];
   const all = Array.from(new Set([...direct, ...globbed]));
-  const candidates = all.filter((p: string) => isVideoLike(p));
+  const candidates = all.filter((p: string) => isMediaLike(p));
 
   if (candidates.length === 0) {
-    console.log(chalk.yellow('No video files matched.'));
+    console.log(chalk.yellow('No supported files matched.'));
     return [];
   }
 
@@ -171,7 +173,14 @@ async function convertPaths(inputs: string[], opts: ConvertOptions): Promise<Con
       .replace('{ext}', extname(input).replace(/^\./,''))
       .replace('{bitrate}', String(opts.bitrateKbps ?? ''))
       .replace('{vbr}', typeof opts.vbrLevel === 'number' ? String(opts.vbrLevel) : '');
-    const out = join(outDir, tpl.endsWith('.mp3') ? tpl : tpl + '.mp3');
+    // Determine output extension based on opts.format
+    let extOut = '.mp3';
+    if (opts.format) {
+      extOut = opts.format === 'aac' ? '.m4a' : `.${opts.format}`;
+    }
+    // Remove any existing extension from template and add new one
+    const baseName = tpl.replace(/\.[^\.]+$/, '');
+    const out = join(outDir, baseName + extOut);
 
     if (!opts.dryRun) fs.mkdirSync(outDir, { recursive: true });
 
@@ -229,40 +238,48 @@ async function convertPaths(inputs: string[], opts: ConvertOptions): Promise<Con
         catch {/* ignore */}
       }
 
-  const attempt = async () => conv.toMp3({
-        input,
-        output: out,
-        bitrateKbps: opts.bitrateKbps,
-        vbrLevel: opts.vbrLevel,
-        sampleRate: opts.sampleRate,
-        channels: opts.channels,
-        threads: opts.throttle === 'low' ? 1 : (opts.throttle === 'medium' ? 2 : undefined),
-        loudnorm: !!opts.loudnorm,
-        trim: trimRange,
-        metadata: ((preferDetected) => {
-          const detected = {
-            title: autoTags.title || autoTags['itl'] || autoTags['tracktitle'] || fileNameTags.title,
-            artist: autoTags.artist || autoTags['album_artist'] || autoTags['author'] || fileNameTags.artist,
-            album: autoTags.album,
-            genre: autoTags.genre,
-            date: autoTags.date || autoTags.year,
-            track: autoTags.track,
-            comment: autoTags.comment || autoTags.description,
-          } as Record<string,string|undefined>;
-          const manual = opts.metadata || {};
-          const merged: any = {};
-          const keys = ['title','artist','album','genre','date','track','comment'] as const;
-          for (const k of keys) {
-            merged[k] = preferDetected ? (detected[k] ?? manual[k]) : (manual[k] ?? detected[k]);
-          }
-          merged.coverImagePath = coverPath;
-          return merged;
-        })(opts.preferDetected === true),
-        onProgress: (p: number) => {
-          if (barInst) barInst.update(Math.min(99, Math.max(1, Math.round(p))));
-          if (opts.onFileProgress) opts.onFileProgress({ input, percent: p });
+    // Select encoder based on output extension
+    const extLower = extOut.toLowerCase();
+    let convertFn;
+    if (extLower === '.m4a' || extLower === '.aac') convertFn = conv.toAac;
+    else if (extLower === '.flac') convertFn = conv.toFlac;
+    else if (extLower === '.ogg') convertFn = conv.toOgg;
+    else if (extLower === '.opus') convertFn = conv.toOpus;
+    else convertFn = conv.toMp3;
+    const attempt = async () => convertFn({
+      input,
+      output: out,
+      bitrateKbps: opts.bitrateKbps,
+      vbrLevel: opts.vbrLevel,
+      sampleRate: opts.sampleRate,
+      channels: opts.channels,
+      threads: opts.throttle === 'low' ? 1 : (opts.throttle === 'medium' ? 2 : undefined),
+      loudnorm: !!opts.loudnorm,
+      trim: trimRange,
+      metadata: ((preferDetected) => {
+        const detected = {
+          title: autoTags.title || autoTags['itl'] || autoTags['tracktitle'] || fileNameTags.title,
+          artist: autoTags.artist || autoTags['album_artist'] || autoTags['author'] || fileNameTags.artist,
+          album: autoTags.album,
+          genre: autoTags.genre,
+          date: autoTags.date || autoTags.year,
+          track: autoTags.track,
+          comment: autoTags.comment || autoTags.description,
+        } as Record<string,string|undefined>;
+        const manual = opts.metadata || {};
+        const merged: any = {};
+        const keys = ['title','artist','album','genre','date','track','comment'] as const;
+        for (const k of keys) {
+          merged[k] = preferDetected ? (detected[k] ?? manual[k]) : (manual[k] ?? detected[k]);
         }
-      });
+        merged.coverImagePath = coverPath;
+        return merged;
+      })(opts.preferDetected === true),
+      onProgress: (p: number) => {
+        if (barInst) barInst.update(Math.min(99, Math.max(1, Math.round(p))));
+        if (opts.onFileProgress) opts.onFileProgress({ input, percent: p });
+      }
+    });
 
       const attempts = Math.max(1, opts.retry?.attempts ?? 1);
       let okRun = false; let lastErr: any;

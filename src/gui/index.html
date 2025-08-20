@@ -146,6 +146,16 @@
             </select>
           </div>
           <div>
+            <label for="format">Output format</label>
+            <select id="format">
+              <option value="mp3" selected>MP3</option>
+              <option value="aac">AAC (M4A)</option>
+              <option value="ogg">OGG (Vorbis)</option>
+              <option value="flac">FLAC</option>
+              <option value="opus">Opus</option>
+            </select>
+          </div>
+          <div>
             <label for="simpleConcurrency" title="How many files to convert at once. Higher = faster, but uses more CPU.">Parallel conversions</label>
             <input type="number" id="simpleConcurrency" value="4" min="1" />
           </div>
@@ -163,6 +173,7 @@
           <button class="btn secondary" id="saveSettings" title="Save all current settings for next time.">Save settings</button>
           <button class="btn secondary" id="loadSettings" title="Restore your last saved settings.">Load settings</button>
           <div id="summary" class="badge">Ready</div>
+          <button id="openOutDir" class="btn secondary" style="margin-left:12px">Open Output Folder</button>
         </div>
       </div>
 
@@ -227,6 +238,8 @@
                 <div><label for="id3Date" title="Set custom date for output files.">ID3: Date</label><input type="text" id="id3Date" /></div>
                 <div><label for="id3Track" title="Set custom track number for output files.">ID3: Track</label><input type="text" id="id3Track" /></div>
                 <div><label for="id3Comment" title="Set custom comment for output files.">ID3: Comment</label><input type="text" id="id3Comment" /></div>
+                <div><label for="id3Composer">ID3: Composer</label><input type="text" id="id3Composer" /></div>
+                <div><label for="id3Disc">ID3: Disc #</label><input type="text" id="id3Disc" /></div>
                 <div><label for="coverPath" title="Path to a custom cover image file.">Cover image</label><input type="text" id="coverPath" placeholder="C:\\path\\cover.jpg" /></div>
                 <div>
                   <label for="autoMeta" title="Try to detect title, artist, album, and cover from input.">Auto metadata</label>
@@ -253,6 +266,16 @@
                     </select>
                   </div>
                   <small class="file" title="Available tokens for output filenames.">Tokens: {basename} {ext} {bitrate} {vbr}</small>
+                </div>
+                <div>
+                  <label for="formatAdv">Output format</label>
+                  <select id="formatAdv">
+                    <option value="mp3" selected>MP3</option>
+                    <option value="aac">AAC (M4A)</option>
+                    <option value="ogg">OGG (Vorbis)</option>
+                    <option value="flac">FLAC</option>
+                    <option value="opus">Opus</option>
+                  </select>
                 </div>
                 <div>
                   <label for="autoCoverEnabled" title="Extract cover image from video at a specific time.">Auto cover</label>
@@ -355,7 +378,69 @@
         setTimeout(() => div.remove(), 3000);
       }
 
-  function updateFiles() { const cnt = files.length; $('#filesCount').textContent = cnt + ' file' + (cnt!==1?'s':''); list.innerHTML = files.map(f => `<div class="file">${f}</div>`).join(''); }
+  function updateFiles() {
+    const cnt = files.length;
+    $('#filesCount').textContent = cnt + ' file' + (cnt!==1?'s':'');
+    list.innerHTML = files.map((f, i) => (
+      `<div class="file item" data-index="${i}" data-path="${f.replace(/"/g, '&quot;')}">
+         <span class="filename">${f}</span>
+         <button class="small-btn remove-btn" data-index="${i}" aria-label="Remove file">&times;</button>
+         <button class="small-btn up-btn" data-index="${i}" aria-label="Move up">↑</button>
+         <button class="small-btn down-btn" data-index="${i}" aria-label="Move down">↓</button>
+       </div>`
+    )).join('');
+  }
+
+  // Delegated click handler for queue management and preview
+  list.addEventListener('click', (e) => {
+    const idx = Number(e.target.dataset.index);
+    if (e.target.classList.contains('remove-btn')) {
+      files.splice(idx, 1);
+      updateFiles();
+      return;
+    }
+    if (e.target.classList.contains('up-btn')) {
+      if (idx > 0) [files[idx-1], files[idx]] = [files[idx], files[idx-1]];
+      updateFiles();
+      return;
+    }
+    if (e.target.classList.contains('down-btn')) {
+      if (idx < files.length-1) [files[idx], files[idx+1]] = [files[idx+1], files[idx]];
+      updateFiles();
+      return;
+    }
+    // Clicking a file item: preview input audio
+    const item = e.target.closest('.item');
+    if (item) {
+      previewFile(item.getAttribute('data-path'));
+    }
+  });
+
+  // Audio preview logic
+  const audioPlayer = document.getElementById('audioPreview');
+  function previewFile(filePath) {
+    if (!filePath) return;
+    let url = filePath;
+    if (/^[A-Za-z]:\\/.test(filePath)) {
+      url = 'file:///' + filePath.replace(/\\/g, '/');
+    } else if (!filePath.startsWith('file://')) {
+      url = 'file://' + filePath;
+    }
+    audioPlayer.src = url;
+    audioPlayer.style.display = 'block';
+    audioPlayer.play().catch(err => console.error('Audio preview error:', err));
+  }
+
+  // Click handler for progressList to preview output or input
+  progressList.addEventListener('click', (e) => {
+    const card = e.target.closest('.card');
+    if (!card) return;
+    if (e.target.tagName.toLowerCase() === 'progress' || e.target.classList.contains('error-detail')) return;
+    const outPath = card.dataset.output;
+    const inPath = card.querySelector('.file')?.textContent;
+    const pathToPlay = outPath || inPath;
+    previewFile(pathToPlay);
+  });
 
       // Mode & Theme
   // Theme switching removed; will use static color scheme matching logo
@@ -364,26 +449,34 @@
       const savedMode = localStorage.getItem('mode')||'simple'; modeSel.value = savedMode; applyMode(savedMode);
       modeSel.addEventListener('change', (e)=>{ const v = e.target.value; localStorage.setItem('mode', v); applyMode(v); });
 
-      // Drag-and-drop (with folder expansion)
+      // Drag-and-drop (with folder expansion, ARIA, and keyboard accessibility)
       const dropZone = document.getElementById('dropZone');
-      ;['dragenter','dragover'].forEach(evt => dropZone.addEventListener(evt, (e)=>{ e.preventDefault(); dropZone.style.background='#111827'; }));
-      ;['dragleave','drop'].forEach(evt => dropZone.addEventListener(evt, (e)=>{ e.preventDefault(); dropZone.style.background=''; }));
-      dropZone.addEventListener('drop', async (e)=>{
-        const listF = Array.from((e.dataTransfer&&e.dataTransfer.files)||[])
-          .map(f=>{
-            let p = f.path||f.name;
-            try { p = decodeURIComponent(p); } catch {}
-            return p;
-          })
-          .filter(Boolean);
-        if (listF.length) {
-          // Use backend to expand folders and filter files
-          let expanded = listF;
-          if (window.vid2mp3?.expandFilesAndFolders) {
-            expanded = await window.vid2mp3.expandFilesAndFolders(listF);
-          }
-          files.splice(0, files.length, ...expanded);
+      ;['dragenter','dragover'].forEach(evt => dropZone.addEventListener(evt, (e)=>{
+        e.preventDefault();
+        dropZone.style.background='#111827';
+        dropZone.style.borderColor='#ffd600';
+      }));
+      ;['dragleave','drop'].forEach(evt => dropZone.addEventListener(evt, (e)=>{
+        e.preventDefault();
+        dropZone.style.background='';
+        dropZone.style.borderColor='#888';
+      }));
+      dropZone.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        dropZone.style.background = '';
+        dropZone.style.borderColor = '#888';
+        const paths = [...(e.dataTransfer?.files || [])].map(f => decodeURIComponent(f.path || f.name));
+        if (paths.length) {
+          console.log('Dropped paths:', paths);
+          const expanded = window.vid2mp3?.fs?.expandPaths ? await window.vid2mp3.fs.expandPaths(paths) : paths;
+          files.splice(0, files.length, ...(expanded || []));
           updateFiles();
+        }
+      });
+      // ARIA & keyboard accessibility for drop zone
+      dropZone.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          document.getElementById('pickFiles').click();
         }
       });
       // Output Folder Open
@@ -396,40 +489,82 @@
         }
       });
 
-      // Queue Pause/Resume
-      document.getElementById('pauseBtn').addEventListener('click', async () => {
-        if (window.vid2mp3?.queue?.pause) {
+      // Pause/Resume toggle button and ETA
+      const pauseBtn = document.getElementById('pauseBtn');
+      let totalCount = 0, startTime = 0;
+      const progressPercents = [], inputIndexMap = {};
+      pauseBtn.addEventListener('click', async () => {
+        if (pauseBtn.textContent === 'Pause') {
           await window.vid2mp3.queue.pause();
-          toast('Queue paused');
+          pauseBtn.textContent = 'Resume';
+        } else {
+          await window.vid2mp3.queue.resume();
+          pauseBtn.textContent = 'Pause';
         }
       });
-      document.getElementById('resumeBtn').addEventListener('click', async () => {
-        if (window.vid2mp3?.queue?.resume) {
-          await window.vid2mp3.queue.resume();
-          toast('Queue resumed');
+      // Progress/ETA logic (update onProgress handler)
+      (window.vid2mp3?.onProgress||function(){})((evt) => {
+        if (evt.type === 'start') {
+          if (!totalCount) {
+            totalCount = evt.total || files.length;
+            startTime = Date.now();
+            progressPercents.length = 0;
+            for (let i = 0; i < totalCount; i++) progressPercents.push(0);
+          }
+          inputIndexMap[evt.input] = evt.index ?? files.indexOf(evt.input);
+          ensureRow(evt.input).querySelector('progress').value = 0;
+          document.getElementById('summary').textContent = 'Working…';
+          pauseBtn.style.display = 'inline-block';
+          pauseBtn.textContent = 'Pause';
+        } else if (evt.type === 'progress') {
+          const idx = inputIndexMap[evt.input];
+          if (idx != null) progressPercents[idx] = Math.round(evt.percent || 0);
+          const fraction = progressPercents.reduce((a,b) => a + b, 0) / (100 * totalCount);
+          window.vid2mp3.sys.setProgress && window.vid2mp3.sys.setProgress(fraction);
+          if (fraction > 0) {
+            const elapsed = (Date.now() - startTime) / 1000;
+            const remaining = elapsed * (1 - fraction) / fraction;
+            const sec = Math.max(0, Math.round(remaining));
+            const m = Math.floor(sec/60), s = sec % 60;
+            const eta = m > 0 ? `${m}m ${s}s` : `${s}s`;
+            document.getElementById('summary').textContent = `Working… (ETA: ~${eta} left)`;
+          }
+          const row = ensureRow(evt.input);
+          row.querySelector('progress').value = Math.round(evt.percent || 0);
+          row.querySelector('.status').textContent = Math.round(evt.percent || 0) + '%';
+        } else if (evt.type === 'done') {
+          const idx = inputIndexMap[evt.input];
+          if (idx != null) progressPercents[idx] = 100;
+          const row = ensureRow(evt.input);
+          row.querySelector('progress').value = evt.ok ? 100 : 0;
+          row.querySelector('.status').textContent = evt.ok ? 'Done' : 'Failed';
+          if (!evt.ok) {
+            row.querySelector('.error-detail').textContent = (evt.error || '') + (evt.stderr ? '\n' + evt.stderr : '');
+            row.querySelector('.error-detail').style.display = 'block';
+          }
         }
       });
 
       // Preset Import/Export/Set Default
       document.getElementById('presetExport').addEventListener('click', async () => {
-        if (window.vid2mp3?.presets?.export) {
-          try {
-            await window.vid2mp3.presets.export();
-            toast('Presets exported');
-          } catch {
-            toast('Failed to export presets');
-          }
+        const name = document.getElementById('presetSelect').value;
+        if (!name) return toast('Select a preset to export');
+        try {
+          await window.vid2mp3.presets.export(name);
+          toast('Preset exported');
+        } catch {
+          toast('Failed to export preset');
         }
       });
       document.getElementById('presetImport').addEventListener('click', async () => {
-        if (window.vid2mp3?.presets?.import) {
-          try {
-            await window.vid2mp3.presets.import();
-            toast('Presets imported');
+        try {
+          const result = await window.vid2mp3.presets.import();
+          if (result && result.name) {
+            toast(`Imported preset "${result.name}"`);
             updatePresetList();
-          } catch {
-            toast('Failed to import presets');
           }
+        } catch {
+          toast('Failed to import preset');
         }
       });
       document.getElementById('presetSetDefault').addEventListener('click', async () => {
@@ -531,6 +666,13 @@
         const dir = window.vid2mp3?.selectFolder ? await window.vid2mp3.selectFolder() : await new Promise(resolve=>{ const inp = document.createElement('input'); inp.type='file'; inp.setAttribute('webkitdirectory',''); inp.setAttribute('directory',''); inp.onchange = ()=>{ const filesList = Array.from(inp.files||[]); const first = filesList[0]; let out = ''; if (first && first.webkitRelativePath) { const wrp = first.webkitRelativePath; const idx = wrp.indexOf('/'); out = idx>0 ? wrp.slice(0, idx) : wrp; } resolve(out); }; inp.click(); });
         if (dir) $('#outDir').value = dir;
       });
+      // Open Output Folder button
+      document.getElementById('openOutDir').addEventListener('click', () => {
+        const outDirPath = document.getElementById('outDir').value;
+        if (outDirPath && window.vid2mp3?.os?.openPath) {
+          window.vid2mp3.os.openPath(outDirPath);
+        }
+      });
 
       // Progress rows
       const fileProgress = new Map();
@@ -610,14 +752,16 @@
           const lines = s.coverFrameRules.map(r=>`${r.pattern} => ${r.timeSec}`).join('\n');
           document.getElementById('coverFrameRules').value = lines;
         }
-        if (s.id3Title !== undefined) $('#id3Title').value = s.id3Title;
-        if (s.id3Artist !== undefined) $('#id3Artist').value = s.id3Artist;
-        if (s.id3Album !== undefined) $('#id3Album').value = s.id3Album;
-        if (s.id3Genre !== undefined) $('#id3Genre').value = s.id3Genre;
-        if (s.id3Date !== undefined) $('#id3Date').value = s.id3Date;
-        if (s.id3Track !== undefined) $('#id3Track').value = s.id3Track;
-        if (s.id3Comment !== undefined) $('#id3Comment').value = s.id3Comment;
-        if (s.coverPath !== undefined) $('#coverPath').value = s.coverPath;
+  if (s.id3Title !== undefined) $('#id3Title').value = s.id3Title;
+  if (s.id3Artist !== undefined) $('#id3Artist').value = s.id3Artist;
+  if (s.id3Album !== undefined) $('#id3Album').value = s.id3Album;
+  if (s.id3Genre !== undefined) $('#id3Genre').value = s.id3Genre;
+  if (s.id3Date !== undefined) $('#id3Date').value = s.id3Date;
+  if (s.id3Track !== undefined) $('#id3Track').value = s.id3Track;
+  if (s.id3Comment !== undefined) $('#id3Comment').value = s.id3Comment;
+  if (s.id3Composer !== undefined) $('#id3Composer').value = s.id3Composer;
+  if (s.id3Disc !== undefined) $('#id3Disc').value = s.id3Disc;
+  if (s.coverPath !== undefined) $('#coverPath').value = s.coverPath;
       }
       async function saveSettingsFromUI() {
         const data = {
@@ -659,6 +803,8 @@
           id3Date: $('#id3Date')?.value||'',
           id3Track: $('#id3Track')?.value||'',
           id3Comment: $('#id3Comment')?.value||'',
+          id3Composer: $('#id3Composer')?.value||'',
+          id3Disc: $('#id3Disc')?.value||'',
           coverPath: $('#coverPath')?.value||'',
         };
         console.log('[TuneFlip Debug] Calling settings.save with:', data);
@@ -750,6 +896,8 @@
             if (presetOptions.id3Date !== undefined) $('#id3Date').value = presetOptions.id3Date;
             if (presetOptions.id3Track !== undefined) $('#id3Track').value = presetOptions.id3Track;
             if (presetOptions.id3Comment !== undefined) $('#id3Comment').value = presetOptions.id3Comment;
+            if (presetOptions.id3Composer !== undefined) $('#id3Composer').value = presetOptions.id3Composer;
+            if (presetOptions.id3Disc !== undefined) $('#id3Disc').value = presetOptions.id3Disc;
             if (presetOptions.coverPath !== undefined) $('#coverPath').value = presetOptions.coverPath;
             toast(`Preset "${name}" loaded`);
           }
@@ -774,7 +922,16 @@
 
       // Auto-load on startup
       loadSettingsIntoUI();
-      updatePresetList();
+      updatePresetList().then(async () => {
+        if (window.vid2mp3?.presets?.getDefault) {
+          const defaultName = await window.vid2mp3.presets.getDefault();
+          const allPresets = await window.vid2mp3.presets.list();
+          if (defaultName && allPresets && defaultName in allPresets) {
+            document.getElementById('presetSelect').value = defaultName;
+            document.getElementById('loadPreset').click();
+          }
+        }
+      });
 
       // Resume controls
       async function refreshResumeUI() {
@@ -897,10 +1054,12 @@
             date: $('#id3Date').value || undefined,
             track: $('#id3Track').value || undefined,
             comment: $('#id3Comment').value || undefined,
+            composer: $('#id3Composer').value || undefined,
+            disc: $('#id3Disc').value || undefined,
             coverImagePath: $('#coverPath').value || undefined
           },
           retry: { attempts: parseInt($('#retryAttempts').value) || 1, delayMs: parseInt($('#retryDelay').value) || 0 },
-          outputFormat
+          format: document.getElementById('format')?.value || 'mp3'
         };
         // Filter files with audio stream (placeholder, see above)
         const filesWithAudio = await filterFilesWithAudio(files);
@@ -910,6 +1069,7 @@
         }
         document.getElementById('summary').textContent = 'Working…';
         try {
+          window.vid2mp3.sys.traySet && window.vid2mp3.sys.traySet({ visible: true, text: 'Converting...', tooltip: 'TuneFlip – Converting files' });
           const { results } = await window.vid2mp3.startConvert({ inputs: filesWithAudio, outDir, options });
           const ok = results.filter(r=>r.ok).length; const fail = results.length - ok;
           if (fail > 0) {
@@ -917,8 +1077,14 @@
           } else {
             document.getElementById('summary').textContent = `Done: ${ok} ok, 0 failed`;
           }
+          window.vid2mp3.sys.traySet && window.vid2mp3.sys.traySet({ visible: false });
+          window.vid2mp3.sys.notify && window.vid2mp3.sys.notify({
+            title: 'TuneFlip – Batch Complete',
+            body: fail ? `${ok} files succeeded, ${fail} failed.` : `All ${ok} files converted successfully!`
+          });
         } catch (e) {
           document.getElementById('summary').textContent = 'Failed'; toast('Failed to start: ' + (e && e.message || e));
+          window.vid2mp3.sys.traySet && window.vid2mp3.sys.traySet({ visible: false });
         }
       });
 
@@ -961,7 +1127,8 @@
             comment: $('#id3Comment').value || undefined,
             coverImagePath: $('#coverPath').value || undefined
           },
-          retry: { attempts: parseInt($('#retryAttempts').value) || 1, delayMs: parseInt($('#retryDelay').value) || 0 }
+          retry: { attempts: parseInt($('#retryAttempts').value) || 1, delayMs: parseInt($('#retryDelay').value) || 0 },
+          format: document.getElementById('formatAdv')?.value || 'mp3'
         };
         // Filter files with audio stream (placeholder, see above)
         const filesWithAudio = await filterFilesWithAudio(files);
@@ -971,6 +1138,7 @@
         }
         document.getElementById('summary').textContent = 'Working…';
         try {
+          window.vid2mp3.sys.traySet && window.vid2mp3.sys.traySet({ visible: true, text: 'Converting...', tooltip: 'TuneFlip – Converting files' });
           const { results } = await window.vid2mp3.startConvert({ inputs: filesWithAudio, outDir, options });
           const ok = results.filter(r=>r.ok).length; const fail = results.length - ok;
           if (fail > 0) {
@@ -978,8 +1146,14 @@
           } else {
             document.getElementById('summary').textContent = `Done: ${ok} ok, 0 failed`;
           }
+          window.vid2mp3.sys.traySet && window.vid2mp3.sys.traySet({ visible: false });
+          window.vid2mp3.sys.notify && window.vid2mp3.sys.notify({
+            title: 'TuneFlip – Batch Complete',
+            body: fail ? `${ok} files succeeded, ${fail} failed.` : `All ${ok} files converted successfully!`
+          });
         } catch (e) {
           document.getElementById('summary').textContent = 'Failed'; toast('Failed to start: ' + (e && e.message || e));
+          window.vid2mp3.sys.traySet && window.vid2mp3.sys.traySet({ visible: false });
         }
       });
 
