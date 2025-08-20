@@ -189,6 +189,9 @@ function writeQueue(q: { pending: string[]; done: string[]; fail: string[] }) {
   fs.writeFileSync(p, JSON.stringify(q, null, 2), 'utf8');
 }
 
+ipcMain.handle('queue:pause', () => { __paused = true; });
+ipcMain.handle('queue:resume', () => { __paused = false; });
+
 function isBase64(str: string) {
   return /^[A-Za-z0-9+/=]+$/.test(str) && str.length % 4 === 0;
 }
@@ -341,13 +344,6 @@ ipcMain.handle('settings:save', async (_e, payload) => {
   writeSettings(payload || {});
   return true;
 });
-ipcMain.handle('presets:delete', async (_e, { name }) => {
-  const all = readPresets();
-  delete all[name];
-  writePresets(all);
-  return true;
-});
-
 // Resume controls
 ipcMain.handle('resume:get', async () => ({ enabled: __resumeEnabled, queue: readQueue() }));
 ipcMain.handle('resume:set', async (_e, { enabled }) => { __resumeEnabled = !!enabled; return true; });

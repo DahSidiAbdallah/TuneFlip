@@ -114,7 +114,7 @@
         <div class="row-inline">
           <button class="btn" id="pickFiles">Select files</button>
           <div id="filesCount" class="badge">0 files</div>
-          <button class="btn" id="openOutBtn" disabled>Open Output Folder</button>
+          <button class="btn" id="openOutBtn">Open Output Folder</button>
         </div>
         <div id="dropZone" class="small" tabindex="0" role="button" aria-label="Drop audio or video files and folders here" style="margin-top:8px;border:2px dashed #888;border-radius:10px;padding:24px;text-align:center;transition:background 120ms, border-color 120ms;">Drop files or folders here</div>
         <input id="fileInput" type="file" multiple webkitdirectory style="display:none" />
@@ -190,7 +190,7 @@
                 <div><label for="samplerate" title="Audio sample rate in Hz (e.g. 44100, 48000)">Sample rate (Hz)</label><input type="number" id="samplerate" placeholder="44100" /></div>
                 <div><label for="channels" title="Number of audio channels (1=mono, 2=stereo)">Channels</label><input type="number" id="channels" placeholder="2" /></div>
                 <div><label for="trim" title="Trim audio: start[-end] in seconds. E.g. 5-65 trims to 1:05.">Trim (start[-end] sec)</label><input type="text" id="trim" placeholder="5-65" /></div>
-                <div><label for="simpleConcurrency" title="How many files to convert at once. Higher = faster, but uses more CPU.">Concurrency</label><input type="number" id="simpleConcurrency" value="4" min="1" /></div>
+                <div><label for="concurrency" title="How many files to convert at once. Higher = faster, but uses more CPU.">Concurrency</label><input type="number" id="concurrency" value="4" min="1" /></div>
               </div>
             </details>
             <details>
@@ -355,7 +355,7 @@
     <script>
       const $ = (s)=>document.querySelector(s);
       const files = [];
-      const list = $('#files');
+      const list = $('#queueList');
       const progressList = $('#progressList');
       const logs = [];
 
@@ -482,8 +482,8 @@
       // Output Folder Open
       document.getElementById('openOutBtn').addEventListener('click', async () => {
         const outDir = $('#outDir').value;
-        if (window.vid2mp3?.openOutputFolder && outDir) {
-          await window.vid2mp3.openOutputFolder(outDir);
+        if (window.vid2mp3?.os?.openPath && outDir) {
+          await window.vid2mp3.os.openPath(outDir);
         } else {
           toast('Output folder open not supported.');
         }
@@ -843,7 +843,7 @@
         }
       }
 
-      document.getElementById('savePreset').addEventListener('click', async () => {
+      document.getElementById('presetSave').addEventListener('click', async () => {
         const name = document.getElementById('presetName').value.trim();
         if (!name) return toast('Please enter a preset name');
         // Gather current settings into an options object:
@@ -857,7 +857,7 @@
         }
       });
 
-      document.getElementById('loadPreset').addEventListener('click', async () => {
+      document.getElementById('presetLoad').addEventListener('click', async () => {
         const select = document.getElementById('presetSelect');
         const name = select.value;
         if (!name) return toast('Please select a preset');
@@ -906,13 +906,13 @@
         }
       });
 
-      document.getElementById('deletePreset').addEventListener('click', async () => {
+      document.getElementById('presetDel').addEventListener('click', async () => {
         const select = document.getElementById('presetSelect');
         const name = select.value;
         if (!name) return;
         if (!confirm(`Delete preset "${name}"?`)) return;
         try {
-          await window.vid2mp3.presets.delete(name);
+          await window.vid2mp3.presets.del(name);
           toast(`Preset "${name}" deleted`);
           updatePresetList();
         } catch {
@@ -928,7 +928,7 @@
           const allPresets = await window.vid2mp3.presets.list();
           if (defaultName && allPresets && defaultName in allPresets) {
             document.getElementById('presetSelect').value = defaultName;
-            document.getElementById('loadPreset').click();
+            document.getElementById('presetLoad').click();
           }
         }
       });
