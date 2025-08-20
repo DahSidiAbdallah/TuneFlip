@@ -1,3 +1,4 @@
+// ...existing code...
 // ==== Utils for media file filtering & folder recursion ====
 import { clipboard, shell, Notification, Tray, Menu, nativeImage } from 'electron';
 const SUPPORTED_EXTS = new Set(['.mp3','.wav','.m4a','.aac','.flac','.ogg','.opus','.wma','.webm','.mp4','.mkv','.mov','.avi','.wmv']);

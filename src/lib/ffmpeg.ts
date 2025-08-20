@@ -20,7 +20,15 @@ export type ToMp3Options = {
   trim?: { start?: number; end?: number };
   onProgress?: (percent: number) => void;
   metadata?: {
-    title?: string; artist?: string; album?: string; genre?: string; date?: string; track?: string; comment?: string;
+    title?: string;
+    artist?: string;
+    album?: string;
+    genre?: string;
+    date?: string;
+    track?: string;
+    comment?: string;
+    composer?: string;
+    disc?: string;
     coverImagePath?: string; // optional image file to embed as album art
   };
   threads?: number; // optional ffmpeg threads override
@@ -252,5 +260,214 @@ export function createConverter() {
     });
   }
 
-  return { toMp3, extractFrame, probeTags, extractAttachedPicture };
+  async function toAac(opts: ToMp3Options) {
+    const { input, output, vbrLevel, bitrateKbps, sampleRate, channels, loudnorm, onProgress, metadata, threads } = opts;
+    const pass2 = loudnorm ? await measureLoudness(input) : undefined;
+    await new Promise<void>((resolve, reject) => {
+      let cmd = buildBase(input, opts).audioCodec('aac');
+      if (typeof bitrateKbps === 'number') {
+        cmd = cmd.audioBitrate(`${Math.max(32, bitrateKbps)}k`);
+      } else if (typeof vbrLevel === 'number') {
+        const br = Math.max(32, 192 - 16 * Math.min(9, vbrLevel));
+        cmd = cmd.audioBitrate(`${br}k`);
+      } else {
+        cmd = cmd.audioBitrate('192k');
+      }
+      if (sampleRate) cmd = cmd.audioFrequency(sampleRate);
+      if (channels) cmd = cmd.audioChannels(channels);
+      if (loudnorm) {
+        const ln = pass2 || {};
+        const filter = `loudnorm=I=-16:TP=-1.5:LRA=11:`+
+          `measured_I=${ln.measured_I ?? -16}:measured_TP=${ln.measured_TP ?? -1.5}:` +
+          `measured_LRA=${ln.measured_LRA ?? 11}:measured_thresh=${ln.measured_thresh ?? -26}:` +
+          `linear=true:print_format=summary`;
+        cmd = cmd.audioFilters(filter);
+      }
+      const outOpts: string[] = ['-map_metadata', '0'];
+      if (threads) outOpts.push('-threads', String(threads));
+      if (metadata) {
+        const md = metadata;
+        if (md.title) cmd = cmd.outputOption('-metadata', `title=${md.title}`);
+        if (md.artist) cmd = cmd.outputOption('-metadata', `artist=${md.artist}`);
+        if (md.album) cmd = cmd.outputOption('-metadata', `album=${md.album}`);
+        if (md.genre) cmd = cmd.outputOption('-metadata', `genre=${md.genre}`);
+        if (md.date) cmd = cmd.outputOption('-metadata', `date=${md.date}`);
+        if (md.track) cmd = cmd.outputOption('-metadata', `track=${md.track}`);
+        if (md.comment) cmd = cmd.outputOption('-metadata', `comment=${md.comment}`);
+        if (md.composer) cmd = cmd.outputOption('-metadata', `composer=${md.composer}`);
+        if (md.disc) cmd = cmd.outputOption('-metadata', `disc=${md.disc}`);
+        if (md.coverImagePath) {
+          cmd = cmd.input(getShortPathIfAscii(md.coverImagePath));
+          outOpts.push('-map', '0:a', '-map', '1', '-c:v', 'copy', '-disposition:v:1', 'attached_pic');
+        } else {
+          outOpts.push('-map', '0:a');
+        }
+      } else {
+        outOpts.push('-map', '0:a');
+      }
+      cmd = cmd.outputOptions(outOpts);
+  cmd.on('progress', (p: { percent?: number }) => { if (onProgress && p.percent != null) onProgress(p.percent); })
+     .on('end', (_stdout: string | null, _stderr: string | null) => resolve())
+     .on('error', (err: Error) => {
+           if (err.message.includes('Invalid data found')) {
+             reject(new Error(`Invalid or unsupported input file: ${input}`));
+           } else {
+             reject(new Error(`FFmpeg error: ${err.message}. Input: ${input}`));
+           }
+         })
+         .save(getShortPathIfAscii(path.resolve(output)));
+    });
+  }
+
+  async function toOgg(opts: ToMp3Options) {
+    const { input, output, vbrLevel, bitrateKbps, sampleRate, channels, loudnorm, onProgress, metadata, threads } = opts;
+    const pass2 = loudnorm ? await measureLoudness(input) : undefined;
+    await new Promise<void>((resolve, reject) => {
+      let cmd = buildBase(input, opts).audioCodec('libvorbis');
+      if (typeof vbrLevel === 'number') {
+        // Vorbis quality: 0 (lowest) to 10 (highest), invert vbrLevel
+        const q = 10 - Math.min(9, Math.max(0, vbrLevel));
+        cmd = cmd.audioQuality(q);
+      } else if (typeof bitrateKbps === 'number') {
+        cmd = cmd.audioBitrate(`${Math.max(32, bitrateKbps)}k`);
+      } else {
+        cmd = cmd.audioBitrate('192k');
+      }
+      if (sampleRate) cmd = cmd.audioFrequency(sampleRate);
+      if (channels) cmd = cmd.audioChannels(channels);
+      if (loudnorm) {
+        const ln = pass2 || {};
+        const filter = `loudnorm=I=-16:TP=-1.5:LRA=11:`+
+          `measured_I=${ln.measured_I ?? -16}:measured_TP=${ln.measured_TP ?? -1.5}:` +
+          `measured_LRA=${ln.measured_LRA ?? 11}:measured_thresh=${ln.measured_thresh ?? -26}:` +
+          `linear=true:print_format=summary`;
+        cmd = cmd.audioFilters(filter);
+      }
+      const outOpts: string[] = ['-map_metadata', '0'];
+      if (threads) outOpts.push('-threads', String(threads));
+      if (metadata) {
+        const md = metadata;
+        if (md.title) cmd = cmd.outputOption('-metadata', `TITLE=${md.title}`);
+        if (md.artist) cmd = cmd.outputOption('-metadata', `ARTIST=${md.artist}`);
+        if (md.album) cmd = cmd.outputOption('-metadata', `ALBUM=${md.album}`);
+        if (md.genre) cmd = cmd.outputOption('-metadata', `GENRE=${md.genre}`);
+        if (md.date) cmd = cmd.outputOption('-metadata', `DATE=${md.date}`);
+        if (md.track) cmd = cmd.outputOption('-metadata', `TRACKNUMBER=${md.track}`);
+        if (md.comment) cmd = cmd.outputOption('-metadata', `COMMENT=${md.comment}`);
+        if (md.composer) cmd = cmd.outputOption('-metadata', `COMPOSER=${md.composer}`);
+        if (md.disc) cmd = cmd.outputOption('-metadata', `DISCNUMBER=${md.disc}`);
+        // Cover art not supported for OGG
+      }
+      cmd = cmd.outputOptions(outOpts);
+  cmd.on('progress', (p: { percent?: number }) => { if (onProgress && p.percent != null) onProgress(p.percent); })
+     .on('end', (_stdout: string | null, _stderr: string | null) => resolve())
+     .on('error', (err: Error) => {
+           if (err.message.includes('Invalid data found')) {
+             reject(new Error(`Invalid or unsupported input file: ${input}`));
+           } else {
+             reject(new Error(`FFmpeg error: ${err.message}. Input: ${input}`));
+           }
+         })
+         .save(getShortPathIfAscii(path.resolve(output)));
+    });
+  }
+
+  async function toFlac(opts: ToMp3Options) {
+    const { input, output, sampleRate, channels, loudnorm, onProgress, metadata, threads } = opts;
+    const pass2 = loudnorm ? await measureLoudness(input) : undefined;
+    await new Promise<void>((resolve, reject) => {
+      let cmd = buildBase(input, opts).audioCodec('flac');
+      if (sampleRate) cmd = cmd.audioFrequency(sampleRate);
+      if (channels) cmd = cmd.audioChannels(channels);
+      if (loudnorm) {
+        const ln = pass2 || {};
+        const filter = `loudnorm=I=-16:TP=-1.5:LRA=11:`+
+          `measured_I=${ln.measured_I ?? -16}:measured_TP=${ln.measured_TP ?? -1.5}:` +
+          `measured_LRA=${ln.measured_LRA ?? 11}:measured_thresh=${ln.measured_thresh ?? -26}:` +
+          `linear=true:print_format=summary`;
+        cmd = cmd.audioFilters(filter);
+      }
+      const outOpts: string[] = ['-map_metadata', '0'];
+      if (threads) outOpts.push('-threads', String(threads));
+      if (metadata) {
+        const md = metadata;
+        if (md.title) cmd = cmd.outputOption('-metadata', `TITLE=${md.title}`);
+        if (md.artist) cmd = cmd.outputOption('-metadata', `ARTIST=${md.artist}`);
+        if (md.album) cmd = cmd.outputOption('-metadata', `ALBUM=${md.album}`);
+        if (md.genre) cmd = cmd.outputOption('-metadata', `GENRE=${md.genre}`);
+        if (md.date) cmd = cmd.outputOption('-metadata', `DATE=${md.date}`);
+        if (md.track) cmd = cmd.outputOption('-metadata', `TRACKNUMBER=${md.track}`);
+        if (md.comment) cmd = cmd.outputOption('-metadata', `COMMENT=${md.comment}`);
+        if (md.composer) cmd = cmd.outputOption('-metadata', `COMPOSER=${md.composer}`);
+        if (md.disc) cmd = cmd.outputOption('-metadata', `DISCNUMBER=${md.disc}`);
+        // Cover art embedding not implemented for FLAC
+      }
+      cmd = cmd.outputOptions(outOpts);
+  cmd.on('progress', (p: { percent?: number }) => { if (onProgress && p.percent != null) onProgress(p.percent); })
+     .on('end', (_stdout: string | null, _stderr: string | null) => resolve())
+     .on('error', (err: Error) => {
+           if (err.message.includes('Invalid data found')) {
+             reject(new Error(`Invalid or unsupported input file: ${input}`));
+           } else {
+             reject(new Error(`FFmpeg error: ${err.message}. Input: ${input}`));
+           }
+         })
+         .save(getShortPathIfAscii(path.resolve(output)));
+    });
+  }
+
+  async function toOpus(opts: ToMp3Options) {
+    const { input, output, vbrLevel, bitrateKbps, sampleRate, channels, loudnorm, onProgress, metadata, threads } = opts;
+    const pass2 = loudnorm ? await measureLoudness(input) : undefined;
+    await new Promise<void>((resolve, reject) => {
+      let cmd = buildBase(input, opts).audioCodec('libopus');
+      if (typeof bitrateKbps === 'number') {
+        cmd = cmd.audioBitrate(`${Math.max(32, bitrateKbps)}k`);
+      } else if (typeof vbrLevel === 'number') {
+        // Map vbrLevel 0–9 to an approximate bitrate
+        const br = Math.max(32, 192 - 16 * Math.min(9, vbrLevel));
+        cmd = cmd.audioBitrate(`${br}k`);
+      } else {
+        cmd = cmd.audioBitrate('192k');
+      }
+      if (sampleRate) cmd = cmd.audioFrequency(sampleRate);
+      if (channels) cmd = cmd.audioChannels(channels);
+      if (loudnorm) {
+        const ln = pass2 || {};
+        const filter = `loudnorm=I=-16:TP=-1.5:LRA=11:`+
+          `measured_I=${ln.measured_I ?? -16}:measured_TP=${ln.measured_TP ?? -1.5}:` +
+          `measured_LRA=${ln.measured_LRA ?? 11}:measured_thresh=${ln.measured_thresh ?? -26}:` +
+          `linear=true:print_format=summary`;
+        cmd = cmd.audioFilters(filter);
+      }
+      const outOpts: string[] = ['-map_metadata', '0'];
+      if (threads) outOpts.push('-threads', String(threads));
+      if (metadata) {
+        const md = metadata;
+        if (md.title) cmd = cmd.outputOption('-metadata', `title=${md.title}`);
+        if (md.artist) cmd = cmd.outputOption('-metadata', `artist=${md.artist}`);
+        if (md.album) cmd = cmd.outputOption('-metadata', `album=${md.album}`);
+        if (md.genre) cmd = cmd.outputOption('-metadata', `genre=${md.genre}`);
+        if (md.date) cmd = cmd.outputOption('-metadata', `date=${md.date}`);
+        if (md.track) cmd = cmd.outputOption('-metadata', `track=${md.track}`);
+        if (md.comment) cmd = cmd.outputOption('-metadata', `comment=${md.comment}`);
+        if (md.composer) cmd = cmd.outputOption('-metadata', `composer=${md.composer}`);
+        if (md.disc) cmd = cmd.outputOption('-metadata', `disc=${md.disc}`);
+        // Cover art not supported for Opus
+      }
+      cmd = cmd.outputOptions(outOpts);
+  cmd.on('progress', (p: { percent?: number }) => { if (onProgress && p.percent != null) onProgress(p.percent); })
+     .on('end', (_stdout: string | null, _stderr: string | null) => resolve())
+     .on('error', (err: Error) => {
+           if (err.message.includes('Invalid data found')) {
+             reject(new Error(`Invalid or unsupported input file: ${input}`));
+           } else {
+             reject(new Error(`FFmpeg error: ${err.message}. Input: ${input}`));
+           }
+         })
+         .save(getShortPathIfAscii(path.resolve(output)));
+    });
+  }
+
+  return { toMp3, toAac, toOgg, toFlac, toOpus, extractFrame, probeTags, extractAttachedPicture };
 }
