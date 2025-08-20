@@ -1016,77 +1016,7 @@
       }
 
 
-      // Simple Convert button
-      document.getElementById('start').addEventListener('click', async () => {
-        if (!files.length) { alert('Select files first'); return; }
-        const outDir = $('#outDir').value || 'out';
-        const mode = document.getElementById('modeSel').value;
-        const concurrency = mode === 'advanced'
-          ? parseInt($('#concurrency').value) || 4
-          : parseInt($('#simpleConcurrency').value) || 4;
-        const outputFormat = document.getElementById('outputFormat').value;
-        const options = {
-          bitrateKbps: parseInt($('#bitrate').value) || undefined,
-          vbrLevel: parseInt($('#vbr').value) || undefined,
-          sampleRate: parseInt($('#samplerate').value) || undefined,
-          channels: parseInt($('#channels').value) || undefined,
-          trim: $('#trim').value || undefined,
-          loudnorm: !!$('#loudnorm').checked,
-          keepStructure: !!$('#keepStructure').checked,
-          overwrite: !!$('#overwrite').checked,
-          concurrency: concurrency,
-          throttle: $('#throttle').value,
-          autoMeta: !!$('#autoMeta').checked,
-          preferDetected: !!$('#preferDetected').checked,
-          template: $('#template').value || undefined,
-          autoCover: { enabled: !!$('#autoCoverEnabled').checked, timeSec: parseInt($('#autoCoverTime').value) || undefined },
-          coverFrameSec: parseFloat($('#coverFrameSec').value) || undefined,
-          coverFrameRules: ($('#coverFrameRules').value||'').split(/\n+/).map(line=>{
-            const m = line.match(/^\s*(.*?)\s*=>\s*(\d+(?:\.\d+)?)\s*$/);
-            if (!m) return null;
-            return { pattern: m[1], timeSec: parseFloat(m[2]) };
-          }).filter(Boolean),
-          metadata: {
-            title: $('#id3Title').value || undefined,
-            artist: $('#id3Artist').value || undefined,
-            album: $('#id3Album').value || undefined,
-            genre: $('#id3Genre').value || undefined,
-            date: $('#id3Date').value || undefined,
-            track: $('#id3Track').value || undefined,
-            comment: $('#id3Comment').value || undefined,
-            composer: $('#id3Composer').value || undefined,
-            disc: $('#id3Disc').value || undefined,
-            coverImagePath: $('#coverPath').value || undefined
-          },
-          retry: { attempts: parseInt($('#retryAttempts').value) || 1, delayMs: parseInt($('#retryDelay').value) || 0 },
-          format: document.getElementById('format')?.value || 'mp3'
-        };
-        // Filter files with audio stream (placeholder, see above)
-        const filesWithAudio = await filterFilesWithAudio(files);
-        if (!filesWithAudio.length) {
-          toast('No files with audio streams found.');
-          return;
-        }
-        document.getElementById('summary').textContent = 'Working…';
-        try {
-          window.vid2mp3.sys.traySet && window.vid2mp3.sys.traySet({ visible: true, text: 'Converting...', tooltip: 'TuneFlip – Converting files' });
-          const { results } = await window.vid2mp3.startConvert({ inputs: filesWithAudio, outDir, options });
-          const ok = results.filter(r=>r.ok).length; const fail = results.length - ok;
-          if (fail > 0) {
-            document.getElementById('summary').textContent = `Done: ${ok} ok, ${fail} failed`;
-          } else {
-            document.getElementById('summary').textContent = `Done: ${ok} ok, 0 failed`;
-          }
-          window.vid2mp3.sys.traySet && window.vid2mp3.sys.traySet({ visible: false });
-          window.vid2mp3.sys.notify && window.vid2mp3.sys.notify({
-            title: 'TuneFlip – Batch Complete',
-            body: fail ? `${ok} files succeeded, ${fail} failed.` : `All ${ok} files converted successfully!`
-          });
-        } catch (e) {
-          document.getElementById('summary').textContent = 'Failed'; toast('Failed to start: ' + (e && e.message || e));
-          window.vid2mp3.sys.traySet && window.vid2mp3.sys.traySet({ visible: false });
-        }
-      });
+  // ...existing code...
 
       // Advanced Convert button
       document.getElementById('startAdvanced').addEventListener('click', async () => {
