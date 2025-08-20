@@ -7,8 +7,12 @@ contextBridge.exposeInMainWorld('vid2mp3', {
   onProgress: (cb: (evt: any) => void) => ipcRenderer.on('progress', (_e, data) => cb(data)),
   presets: {
     list: () => ipcRenderer.invoke('presets:list'),
-    save: (name: string, options: any) => ipcRenderer.invoke('presets:save', { name, options }),
-    delete: (name: string) => ipcRenderer.invoke('presets:delete', { name }),
+    save: (name: string, data: any) => ipcRenderer.invoke('presets:save', { name, data }),
+    del: (name: string) => ipcRenderer.invoke('presets:del', name),
+    export: (name: string) => ipcRenderer.invoke('presets:export', name),
+    import: () => ipcRenderer.invoke('presets:import'),
+    setDefault: (name: string) => ipcRenderer.invoke('presets:setDefault', name),
+    getDefault: () => ipcRenderer.invoke('presets:getDefault'),
   },
   exportLogs: (content: string) => ipcRenderer.invoke('export-logs', { content }),
   queue: {
