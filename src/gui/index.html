@@ -190,7 +190,7 @@
                 <div><label for="samplerate" title="Audio sample rate in Hz (e.g. 44100, 48000)">Sample rate (Hz)</label><input type="number" id="samplerate" placeholder="44100" /></div>
                 <div><label for="channels" title="Number of audio channels (1=mono, 2=stereo)">Channels</label><input type="number" id="channels" placeholder="2" /></div>
                 <div><label for="trim" title="Trim audio: start[-end] in seconds. E.g. 5-65 trims to 1:05.">Trim (start[-end] sec)</label><input type="text" id="trim" placeholder="5-65" /></div>
-                <div><label for="simpleConcurrency" title="How many files to convert at once. Higher = faster, but uses more CPU.">Concurrency</label><input type="number" id="simpleConcurrency" value="4" min="1" /></div>
+                <div><label for="concurrency" title="How many files to convert at once. Higher = faster, but uses more CPU.">Concurrency</label><input type="number" id="concurrency" value="4" min="1" /></div>
               </div>
             </details>
             <details>
@@ -355,7 +355,7 @@
     <script>
       const $ = (s)=>document.querySelector(s);
       const files = [];
-      const list = $('#files');
+      const list = $('#queueList');
       const progressList = $('#progressList');
       const logs = [];
 
