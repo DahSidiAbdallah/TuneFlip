@@ -4,149 +4,139 @@
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TuneFlip</title>
+    <meta name="description" content="TuneFlip - Convert videos to audio with premium quality" />
+    <title>TuneFlip – Audio Conversion Made Easy</title>
+    <link rel="stylesheet" href="app.css" />
     <style>
-      :root {
-        --primary-bg: #e6f5d7; /* deeper greenish background */
-        --header-bg: #d0f0b7; /* deeper header */
-        --card-bg: #fdf6e3; /* warm, but not too bright */
-        --border: #ffd600; /* strong yellow border */
-        --accent: #43b97f; /* deeper green for buttons */
-        --accent-dark: #ff9800; /* strong orange for secondary */
-        --accent-yellow: #ffe066; /* bright yellow for highlights */
-        --text: #222; /* very dark text for contrast */
-        --text-muted: #7c7c5c;
-        --badge-bg: #fffbe6;
-        --input-bg: #f7fbe7;
-      }
+      /* Anti-FOUC: Fade in when ready */
       body {
-        font-family: system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
-        margin: 0;
-        background: var(--primary-bg);
-        color: var(--text);
+        opacity: 0;
+        transition: opacity 280ms cubic-bezier(0.33, 1, 0.68, 1);
       }
-      header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 14px 18px;
-        background: var(--header-bg);
-        border-bottom: 2px solid var(--border);
+      body.ready {
+        opacity: 1;
       }
-      .brand {
-        font-weight: 700;
-        color: var(--accent-dark);
-        letter-spacing: 1px;
-        font-size: 1.5em;
-        text-shadow: 0 2px 8px #ffd60033;
-      }
-      .container {
-        padding: 18px;
-        max-width: 900px;
-        margin: 0 auto;
-      }
-      .card {
-        background: var(--card-bg);
-        border: 1.5px solid var(--border);
-        border-radius: 14px;
-        padding: 16px;
-        margin-bottom: 16px;
-        box-shadow: 0 2px 12px #ffd60022;
-      }
-      .row { display: flex; gap: 10px; flex-wrap: wrap; }
-  label { display: block; font-size: 12px; color: var(--accent-dark); margin-bottom: 6px; font-weight: 600; }
-      input[type=text],input[type=number],select {
-        background: var(--input-bg);
-        border: 1.5px solid var(--border);
-        border-radius: 8px;
-        padding: 10px;
-        color: var(--text);
-        width: 100%;
-        font-weight: 500;
-      }
-      .btn {
-        background: var(--accent);
-        border: none;
-        color: #fff;
-        padding: 10px 14px;
-        border-radius: 8px;
-        cursor: pointer;
-        font-weight: 600;
-        transition: background 0.2s, color 0.2s;
-        box-shadow: 0 2px 8px #43b97f22;
-      }
-      .btn.secondary { background: var(--accent-dark); color: #fff; }
-      .btn:hover { background: var(--accent-dark); color: #fff; }
-      .badge {
-        background: var(--accent-yellow);
-        border-radius: 999px;
-        padding: 2px 8px;
-        font-size: 12px;
-        color: #b36b00;
-        font-weight: 700;
-        border: 1px solid #ffd600;
-      }
-      .small { font-size: 12px; color: #b36b00; }
-  progress { width: 100%; height: 10px; accent-color: var(--accent-dark); }
-  .file { font-family: ui-monospace,Menlo,Consolas,monospace; font-size: 12px; color: #ff9800; }
-      .grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 12px; }
-      .row-inline { display: flex; gap: 8px; align-items: flex-end; }
-      /* Modes */
-      body[data-mode="simple"] .advanced{display:none}
-      body[data-mode="advanced"] .simpleOnly{display:none}
     </style>
   </head>
   <body>
     <header>
-  
-      <div class="row-inline">
-  <!-- Theme switcher removed -->
-        <label class="badge" style="background:#111827;border:1px solid #374151">Mode</label>
-        <select id="modeSel"><option value="simple" selected>Simple</option><option value="advanced">Advanced</option></select>
+      <div class="brand" aria-label="TuneFlip application header">
+        <div class="brand__logo" role="img" aria-label="TuneFlip">TF</div>
+        <div class="brand__name">TuneFlip</div>
+      </div>
+      <nav class="app-menubar" aria-label="Application menu" role="menubar">
+        <button class="menu-btn" role="menuitem" aria-haspopup="true" aria-expanded="false" data-menu="file" data-tip="File actions">File</button>
+        <button class="menu-btn" role="menuitem" aria-haspopup="true" aria-expanded="false" data-menu="view" data-tip="View options">View</button>
+        <button class="menu-btn" role="menuitem" aria-haspopup="true" aria-expanded="false" data-menu="edit" data-tip="Edit tools">Edit</button>
+      </nav>
+      <!-- Popover menus -->
+      <div id="menu-pop-file" class="menu-pop" role="menu" aria-label="File menu">
+        <button role="menuitem" data-action="openOut">Open Output Folder</button>
+        <button role="menuitem" data-action="pickFiles">Add Files…</button>
+        <div class="menu-sep"></div>
+        <button role="menuitem" data-action="saveSettings">Save Settings</button>
+        <button role="menuitem" data-action="loadSettings">Load Settings</button>
+        <div class="menu-sep"></div>
+        <button role="menuitem" data-action="showLogs">Show Logs</button>
+      </div>
+      <div id="menu-pop-view" class="menu-pop" role="menu" aria-label="View menu">
+        <button role="menuitem" data-action="toggleMode" data-mode="simple">Simple Mode</button>
+        <button role="menuitem" data-action="toggleMode" data-mode="advanced">Advanced Mode</button>
+        <div class="menu-sep"></div>
+        <button role="menuitem" data-action="scrollTop">Scroll to Top</button>
+      </div>
+      <div id="menu-pop-edit" class="menu-pop" role="menu" aria-label="Edit menu">
+        <button role="menuitem" data-action="clearQueue">Clear Queue</button>
+        <button role="menuitem" data-action="resumeToggle">Toggle Resume Queue</button>
+        <div class="menu-sep"></div>
+        <button role="menuitem" data-action="copyLogs">Copy Logs</button>
+      </div>
+      <div class="row-inline" style="justify-content: flex-end; margin-left: auto;">
+        <label class="badge" title="Switch between quick Simple mode and full Advanced controls" style="font-size: 11px; font-weight: 600;">MODE</label>
+        <select id="modeSel" aria-label="Mode selection" style="min-width: 120px;">
+          <option value="simple" selected>Simple</option>
+          <option value="advanced">Advanced</option>
+        </select>
+        
+        <div id="themeGroup" class="seg-group" role="radiogroup" aria-label="Theme" data-tip="Theme: System / Light / Dark">
+          <button type="button" role="radio" data-theme="system" aria-checked="true" title="System theme">Auto</button>
+          <button type="button" role="radio" data-theme="light" aria-checked="false" title="Light theme">☀️</button>
+          <button type="button" role="radio" data-theme="dark" aria-checked="false" title="Dark theme">🌙</button>
+        </div>
+        
+        <div id="densityGroup" class="seg-group" role="radiogroup" aria-label="Density" data-tip="Density: Standard / Compact">
+          <button type="button" role="radio" data-density="normal" aria-checked="true" title="Normal density">Standard</button>
+          <button type="button" role="radio" data-density="compact" aria-checked="false" title="Compact density">Compact</button>
+        </div>
+        
+        <span id="themeLive" class="visually-hidden" aria-live="polite"></span>
       </div>
     </header>
     <div class="container">
 
       <div id="diag" class="card small" style="display:none"></div>
 
-      <!-- Files -->
-      <div class="card">
+      <!-- Files Section -->
+      <section class="card" aria-labelledby="files-heading">
+        <h2 id="files-heading" class="visually-hidden">File Selection</h2>
+        
         <div class="row-inline">
-          <button class="btn" id="pickFiles">Select files</button>
-          <div id="filesCount" class="badge">0 files</div>
-          <button class="btn" id="openOutBtn">Open Output Folder</button>
+          <button class="btn" id="pickFiles" type="button">
+            <span>Select Files</span>
+          </button>
+          <div id="filesCount" class="badge" role="status" aria-live="polite">0 files</div>
+          <button class="btn secondary" id="openOutBtn" type="button">Open Output Folder</button>
         </div>
-        <div id="dropZone" class="small" tabindex="0" role="button" aria-label="Drop audio or video files and folders here" style="margin-top:8px;border:2px dashed #888;border-radius:10px;padding:24px;text-align:center;transition:background 120ms, border-color 120ms;">Drop files or folders here</div>
-        <input id="fileInput" type="file" multiple webkitdirectory style="display:none" />
-        <ul id="queueList" class="queue"></ul>
-        <div class="queue-actions">
-          <button id="pauseBtn" class="btn" disabled>Pause</button>
-          <button id="resumeBtn" class="btn" disabled>Resume</button>
-          <span id="etaLabel" aria-live="polite"></span>
+        
+        <div id="dropZone" tabindex="0" role="button" aria-label="Drop audio or video files and folders here, or click to select">
+          <span style="font-weight: 500;">Drop files or folders here</span>
         </div>
-      </div>
+        
+        <input id="fileInput" type="file" multiple webkitdirectory style="display: none;" aria-hidden="true" />
+        
+        <ul id="queueList" role="list" aria-label="Selected files queue"></ul>
+        
+        <div class="queue-actions" style="margin-top: var(--space-lg); display: flex; gap: var(--space-md); align-items: center;">
+          <button id="pauseBtn" class="btn" type="button" disabled>Pause</button>
+          <button id="resumeBtn" class="btn" type="button" disabled>Resume</button>
+          <span id="etaLabel" class="small" role="status" aria-live="polite"></span>
+        </div>
+      </section>
 
-      <!-- Simple controls -->
-  <div class="card simpleOnly" title="Quick conversion with recommended settings. Use Advanced for more control.">
+      <!-- Simple Mode Controls -->
+      <section class="card simpleOnly" aria-labelledby="simple-heading">
+        <h2 id="simple-heading" class="visually-hidden">Simple Mode Settings</h2>
+        
         <div class="grid">
           <div>
-            <label for="outDir" title="Where converted files will be saved. You can browse or type a path.">Output folder</label>
+            <label for="outDir">Output Folder</label>
             <div class="row-inline">
-              <input type="text" id="outDir" placeholder="out" value="out" />
-              <button class="btn secondary" id="pickOut">Browse</button>
+              <input 
+                type="text" 
+                id="outDir" 
+                placeholder="out" 
+                value="out" 
+                aria-describedby="outDir-desc"
+              />
+              <button class="btn ghost" id="pickOut" type="button">Browse</button>
             </div>
+            <small id="outDir-desc" class="small muted" style="display: block; margin-top: 4px;">
+              Where converted files will be saved
+            </small>
           </div>
+          
           <div>
-            <label for="quality" title="Choose between standard, high, or variable bitrate (VBR) quality. Use Advanced for custom.">Quality</label>
-            <select id="quality">
+            <label for="quality">Audio Quality</label>
+            <select id="quality" aria-describedby="quality-desc">
               <option value="std">Standard (192 kbps)</option>
               <option value="high">High (256 kbps)</option>
               <option value="vbr2">Very High (VBR 2)</option>
               <option value="custom">Custom (use Advanced)</option>
             </select>
           </div>
+          
           <div>
-            <label for="format">Output format</label>
+            <label for="format">Output Format</label>
             <select id="format">
               <option value="mp3" selected>MP3</option>
               <option value="aac">AAC (M4A)</option>
@@ -155,27 +145,48 @@
               <option value="opus">Opus</option>
             </select>
           </div>
+          
           <div>
-            <label for="simpleConcurrency" title="How many files to convert at once. Higher = faster, but uses more CPU.">Parallel conversions</label>
-            <input type="number" id="simpleConcurrency" value="4" min="1" />
+            <label for="simpleConcurrency">Parallel Conversions</label>
+            <input 
+              type="number" 
+              id="simpleConcurrency" 
+              value="4" 
+              min="1" 
+              max="16"
+              aria-describedby="concurrency-desc"
+            />
+            <small id="concurrency-desc" class="small muted" style="display: block; margin-top: 4px;">
+              How many files to convert simultaneously
+            </small>
           </div>
+          
           <div>
-            <label for="throttle" title="Throttle conversion speed to reduce system impact.">Resource mode</label>
+            <label for="throttle">Resource Mode</label>
             <select id="throttle">
-              <option value="off">Max speed</option>
+              <option value="off">Max Speed</option>
               <option value="medium">Balanced</option>
-              <option value="low">Low impact</option>
+              <option value="low">Low Impact</option>
             </select>
           </div>
         </div>
-        <div class="row-inline" style="margin-top:10px">
-          <button class="btn" id="start">Convert</button>
-          <button class="btn secondary" id="saveSettings" title="Save all current settings for next time.">Save settings</button>
-          <button class="btn secondary" id="loadSettings" title="Restore your last saved settings.">Load settings</button>
-          <div id="summary" class="badge">Ready</div>
-          <button id="openOutDir" class="btn secondary" style="margin-left:12px">Open Output Folder</button>
+        
+        <div class="row-inline" style="margin-top: var(--space-xl); padding-top: var(--space-lg); border-top: 1px solid var(--c-border-subtle);">
+          <button class="btn" id="start" type="button">
+            <span>Start Conversion</span>
+          </button>
+          <button class="btn ghost" id="saveSettings" type="button" title="Save all current settings for next time">
+            Save Settings
+          </button>
+          <button class="btn ghost" id="loadSettings" type="button" title="Restore your last saved settings">
+            Load Settings
+          </button>
+          <div id="summary" class="badge" role="status" aria-live="polite">Ready</div>
+          <button id="openOutDir" class="btn ghost" type="button" style="margin-left: auto;">
+            Open Output Folder
+          </button>
         </div>
-      </div>
+      </section>
 
       <!-- Advanced controls -->
       <div class="card advanced" title="Full control over all conversion options.">
@@ -310,7 +321,7 @@
 
       <!-- Logs Dialog -->
       <button id="showLogsBtn">Show logs</button>
-      <dialog id="logsDlg" style="width:70vw; max-width:900px;">
+  <dialog id="logsDlg">
         <h3>Logs</h3>
         <textarea id="logsArea" style="width:100%; height:50vh" readonly></textarea>
         <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:8px;">
@@ -353,42 +364,73 @@
 
     </div>
     <script>
+      // === Theme & Density bootstrap BEFORE rest for no-flash ===
+      (function(){
+        const root = document.documentElement;
+        const savedTheme = localStorage.getItem('tfTheme')||'system';
+        const savedDensity = localStorage.getItem('tfDensity')||'normal';
+        function applyTheme(t){
+          root.removeAttribute('data-theme');
+            if(t==='light'||t==='dark') root.setAttribute('data-theme', t);
+        }
+        function applyDensity(d){ document.body.setAttribute('data-density', d); }
+        applyTheme(savedTheme); applyDensity(savedDensity);
+        window.__applyTheme = applyTheme; window.__applyDensity = applyDensity;
+        window.addEventListener('DOMContentLoaded', ()=>{ document.body.classList.add('ready'); });
+      })();
       const $ = (s)=>document.querySelector(s);
       const files = [];
       const list = $('#queueList');
       const progressList = $('#progressList');
       const logs = [];
 
-      // Toasts
+      // Toast Notifications – Modern & Clean
       const toaster = document.createElement('div');
-      toaster.style.position='fixed'; toaster.style.bottom='20px'; toaster.style.right='20px'; toaster.style.zIndex='9999';
+      toaster.style.cssText = 'position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; max-width: 400px;';
       document.body.appendChild(toaster);
-      function toast(msg) {
+      
+      function toast(msg, type = 'info') {
         const div = document.createElement('div');
+        div.className = `toast ${type}`;
         div.textContent = msg;
-        div.style.background = '#fffbe6'; // light yellow for visibility
-        div.style.color = '#222'; // dark text for contrast
-        div.style.border = '1.5px solid #ffd600';
-        div.style.padding = '8px 12px';
-        div.style.borderRadius = '8px';
-        div.style.marginTop = '8px';
-        div.style.boxShadow = '0 2px 8px #ffd60033';
-        div.style.fontWeight = '600';
+        div.setAttribute('role', 'status');
+        div.setAttribute('aria-live', 'polite');
         toaster.appendChild(div);
-        setTimeout(() => div.remove(), 3000);
+        
+        // Animate out and remove
+        setTimeout(() => {
+          div.style.animation = 'toastSlideOut 280ms var(--ease-smooth)';
+          setTimeout(() => div.remove(), 280);
+        }, 3000);
       }
+      
+      // Add slide-out animation
+      const style = document.createElement('style');
+      style.textContent = `
+        @keyframes toastSlideOut {
+          from { opacity: 1; transform: translateX(0); }
+          to { opacity: 0; transform: translateX(100%); }
+        }
+      `;
+      document.head.appendChild(style);
 
   function updateFiles() {
     const cnt = files.length;
     $('#filesCount').textContent = cnt + ' file' + (cnt!==1?'s':'');
-    list.innerHTML = files.map((f, i) => (
-      `<div class="file item" data-index="${i}" data-path="${f.replace(/"/g, '&quot;')}">
-         <span class="filename">${f}</span>
-         <button class="small-btn remove-btn" data-index="${i}" aria-label="Remove file">&times;</button>
-         <button class="small-btn up-btn" data-index="${i}" aria-label="Move up">↑</button>
-         <button class="small-btn down-btn" data-index="${i}" aria-label="Move down">↓</button>
-       </div>`
-    )).join('');
+    list.innerHTML = files.map((f, i) => {
+      const filename = f.split(/[/\\]/).pop() || f;
+      const path = f.replace(/"/g, '&quot;');
+      return `
+        <li class="file item" data-index="${i}" data-path="${path}" role="listitem">
+          <span class="filename" title="${path}">${filename}</span>
+          <div style="display: flex; gap: 4px; margin-left: auto;">
+            <button class="small-btn up-btn" data-index="${i}" aria-label="Move ${filename} up" type="button" ${i === 0 ? 'disabled' : ''}>↑</button>
+            <button class="small-btn down-btn" data-index="${i}" aria-label="Move ${filename} down" type="button" ${i === cnt - 1 ? 'disabled' : ''}>↓</button>
+            <button class="small-btn remove-btn" data-index="${i}" aria-label="Remove ${filename}" type="button">&times;</button>
+          </div>
+        </li>
+      `;
+    }).join('');
   }
 
   // Delegated click handler for queue management and preview
@@ -448,6 +490,158 @@
       function applyMode(v){ document.body.setAttribute('data-mode', v); }
       const savedMode = localStorage.getItem('mode')||'simple'; modeSel.value = savedMode; applyMode(savedMode);
       modeSel.addEventListener('change', (e)=>{ const v = e.target.value; localStorage.setItem('mode', v); applyMode(v); });
+
+      // Segmented theme & density controls
+      const themeGroup = document.getElementById('themeGroup');
+      const densityGroup = document.getElementById('densityGroup');
+      const themeLive = document.getElementById('themeLive');
+      function syncSeg(group, cur, attr){
+        const btns = [...group.querySelectorAll('button')];
+        btns.forEach((b,i)=>{
+          const val = b.getAttribute('data-'+attr);
+          const sel = val===cur;
+          b.setAttribute('aria-checked', sel ? 'true':'false');
+          b.tabIndex = sel ? 0 : -1; // roving tabindex
+        });
+      }
+      function moveSegFocus(group, attr, dir){
+        const btns = [...group.querySelectorAll('button')];
+        const idx = btns.findIndex(b=>b.tabIndex===0);
+        if(idx===-1) return;
+        let ni = (idx + dir + btns.length) % btns.length;
+        btns[ni].focus();
+        // Activate automatically on arrow
+        btns[ni].click();
+      }
+  let curTheme = localStorage.getItem('tfTheme')||'system';
+  let curDensity = localStorage.getItem('tfDensity')||'normal';
+      syncSeg(themeGroup, curTheme, 'theme');
+      syncSeg(densityGroup, curDensity, 'density');
+      themeGroup.addEventListener('click', e=>{
+        const btn = e.target.closest('button[data-theme]'); if(!btn) return;
+        const v = btn.getAttribute('data-theme'); curTheme = v; localStorage.setItem('tfTheme', v);
+        document.documentElement.classList.add('theme-animating');
+        setTimeout(()=>document.documentElement.classList.remove('theme-animating'),400);
+        window.__applyTheme(v); syncSeg(themeGroup, v, 'theme');
+        themeLive.textContent = 'Theme set to '+v + (v==='system'?' (following OS preference)':'');
+      });
+      themeGroup.addEventListener('keydown', e=>{
+        if(['ArrowRight','ArrowDown'].includes(e.key)){ e.preventDefault(); moveSegFocus(themeGroup,'theme', +1); }
+        else if(['ArrowLeft','ArrowUp'].includes(e.key)){ e.preventDefault(); moveSegFocus(themeGroup,'theme', -1); }
+        else if(e.key==='Home'){ e.preventDefault(); const first=themeGroup.querySelector('button'); first && first.focus() && first.click(); }
+        else if(e.key==='End'){ e.preventDefault(); const btns=[...themeGroup.querySelectorAll('button')]; const last=btns[btns.length-1]; last && last.focus() && last.click(); }
+      });
+      densityGroup.addEventListener('click', e=>{
+        const btn = e.target.closest('button[data-density]'); if(!btn) return;
+        const v = btn.getAttribute('data-density'); curDensity = v; localStorage.setItem('tfDensity', v);
+        window.__applyDensity(v); syncSeg(densityGroup, v, 'density');
+      });
+      densityGroup.addEventListener('keydown', e=>{
+        if(['ArrowRight','ArrowDown'].includes(e.key)){ e.preventDefault(); moveSegFocus(densityGroup,'density', +1); }
+        else if(['ArrowLeft','ArrowUp'].includes(e.key)){ e.preventDefault(); moveSegFocus(densityGroup,'density', -1); }
+        else if(e.key==='Home'){ e.preventDefault(); const first=densityGroup.querySelector('button'); first && first.focus() && first.click(); }
+        else if(e.key==='End'){ e.preventDefault(); const btns=[...densityGroup.querySelectorAll('button')]; const last=btns[btns.length-1]; last && last.focus() && last.click(); }
+      });
+      document.getElementById('segHelp').addEventListener('click', ()=>{
+        toast('Sys = System theme; Std = Standard density; Cmp = Compact density');
+      });
+      // Menu button visual toggle (placeholder for real menu logic)
+      document.querySelectorAll('.menu-btn').forEach(btn=>{
+        btn.addEventListener('click', (e)=>{
+          toggleMenu(btn);
+        });
+        btn.addEventListener('keydown', e=>{
+          if(['Enter',' '].includes(e.key)){ e.preventDefault(); toggleMenu(btn); }
+          if(e.key==='ArrowRight'){ e.preventDefault(); focusNextMenu(btn, +1); }
+          if(e.key==='ArrowLeft'){ e.preventDefault(); focusNextMenu(btn, -1); }
+          if(e.key==='Escape'){ closeAllMenus(); btn.focus(); }
+          if(e.key==='ArrowDown'){ e.preventDefault(); openMenu(btn, true); }
+        });
+      });
+      function focusNextMenu(current, dir){
+        const items=[...document.querySelectorAll('.menu-btn')];
+        const i=items.indexOf(current); if(i<0) return; items[(i+dir+items.length)%items.length].focus();
+      }
+      function menuButtonRect(btn){ return btn.getBoundingClientRect(); }
+      function closeAllMenus(){
+        document.querySelectorAll('.menu-btn').forEach(b=>{ b.removeAttribute('data-open'); b.setAttribute('aria-expanded','false'); });
+        document.querySelectorAll('.menu-pop').forEach(p=>p.removeAttribute('data-open'));
+      }
+      function openMenu(btn, focusFirst){
+        const id = 'menu-pop-' + btn.getAttribute('data-menu');
+        const pop = document.getElementById(id); if(!pop) return;
+        closeAllMenus();
+        btn.setAttribute('data-open','true'); btn.setAttribute('aria-expanded','true');
+        // Position below button
+        const r = menuButtonRect(btn);
+        pop.style.position='fixed';
+        pop.style.top = (r.bottom + 4) + 'px';
+        let left = r.left;
+        const vw = window.innerWidth;
+        if (left + pop.offsetWidth > vw - 8) left = vw - pop.offsetWidth - 8;
+        pop.style.left = left + 'px';
+        pop.setAttribute('data-open','true');
+        if(focusFirst){ const first = pop.querySelector('button'); first && first.focus(); }
+      }
+      function toggleMenu(btn){
+        const open = btn.getAttribute('data-open')==='true';
+        if(open){ closeAllMenus(); return; }
+        openMenu(btn, true);
+      }
+      // Menu pop handlers
+      document.querySelectorAll('.menu-pop').forEach(pop=>{
+        pop.addEventListener('keydown', e=>{
+          const items=[...pop.querySelectorAll('button')];
+          const idx=items.indexOf(document.activeElement);
+          if(e.key==='Escape'){ e.preventDefault(); closeAllMenus(); const m = document.querySelector(`.menu-btn[data-menu="${pop.id.replace('menu-pop-','')}"]`); m && m.focus(); }
+          if(['ArrowDown','ArrowRight'].includes(e.key)){ e.preventDefault(); items[(idx+1+items.length)%items.length].focus(); }
+          if(['ArrowUp','ArrowLeft'].includes(e.key)){ e.preventDefault(); items[(idx-1+items.length)%items.length].focus(); }
+          if(e.key==='Home'){ e.preventDefault(); items[0].focus(); }
+          if(e.key==='End'){ e.preventDefault(); items[items.length-1].focus(); }
+          if(e.key==='Tab'){ closeAllMenus(); }
+        });
+        pop.addEventListener('click', e=>{
+          const btn = e.target.closest('button[data-action]'); if(!btn) return;
+          handleMenuAction(btn.getAttribute('data-action'), btn);
+          closeAllMenus();
+        });
+      });
+      function handleMenuAction(action, el){
+        switch(action){
+          case 'openOut': document.getElementById('openOutBtn').click(); break;
+          case 'pickFiles': document.getElementById('pickFiles').click(); break;
+          case 'saveSettings': document.getElementById('saveSettings').click(); break;
+          case 'loadSettings': document.getElementById('loadSettings').click(); break;
+          case 'showLogs': document.getElementById('showLogsBtn').click(); break;
+          case 'toggleMode': {
+            const mode = el.getAttribute('data-mode');
+            if(mode){ document.getElementById('modeSel').value = mode; document.getElementById('modeSel').dispatchEvent(new Event('change')); }
+            break; }
+          case 'scrollTop': window.scrollTo({top:0, behavior:'smooth'}); break;
+          case 'clearQueue': document.getElementById('resumeClear').click(); break;
+          case 'resumeToggle': document.getElementById('resumeToggle').click(); break;
+          case 'copyLogs': document.getElementById('copyLogsBtn').click(); break;
+        }
+      }
+      // Close menus when clicking outside
+      document.addEventListener('mousedown', e=>{
+        if(e.target.closest('.menu-pop') || e.target.closest('.menu-btn')) return;
+        closeAllMenus();
+      });
+      window.addEventListener('resize', closeAllMenus);
+
+      // Ripple effect delegation
+      document.addEventListener('click', (e)=>{
+        const btn = e.target.closest('button, .btn, .small-btn');
+        if(!btn) return;
+        const rect = btn.getBoundingClientRect();
+        const r = document.createElement('span');
+        r.className='ripple';
+        const x = (e.clientX - rect.left);
+        const y = (e.clientY - rect.top);
+        r.style.left = x+'px'; r.style.top = y+'px';
+        btn.appendChild(r); setTimeout(()=>r.remove(), 900);
+      });
 
       // Drag-and-drop (with folder expansion, ARIA, and keyboard accessibility)
       const dropZone = document.getElementById('dropZone');
@@ -542,6 +736,7 @@
             row.querySelector('.error-detail').textContent = (evt.error || '') + (evt.stderr ? '\n' + evt.stderr : '');
             row.querySelector('.error-detail').style.display = 'block';
           }
+          row.classList.remove('active');
         }
       });
 
@@ -674,13 +869,21 @@
         }
       });
 
-      // Progress rows
+      // Progress Rows – Enhanced Markup
       const fileProgress = new Map();
       function ensureRow(input) {
         if (fileProgress.has(input)) return fileProgress.get(input);
-        const row = document.createElement('div');
-        row.className = 'card';
-        row.innerHTML = `<div class="file">${input}</div><progress max="100" value="0"></progress><div class="file status small"></div><pre class="error-detail" style="display:none;white-space:pre-wrap;background:#fffbe6;color:#b36b00;font-size:12px;padding:8px 0 0 0;margin:0"></pre>`;
+        
+        const filename = input.split(/[/\\]/).pop() || input;
+        const row = document.createElement('article');
+        row.className = 'card active';
+        row.setAttribute('aria-label', `Converting ${filename}`);
+        row.innerHTML = `
+          <div class="file" style="font-weight: 500; margin-bottom: 8px;" title="${input}">${filename}</div>
+          <progress max="100" value="0" aria-label="Conversion progress"></progress>
+          <div class="status small" style="margin-top: 8px; color: var(--c-text-secondary);" role="status" aria-live="polite"></div>
+          <pre class="error-detail" style="display: none; white-space: pre-wrap; background: var(--danger-subtle); color: var(--danger); font-size: 12px; padding: 12px; margin: 12px 0 0; border-radius: var(--radius-sm); border: 1px solid var(--danger);"></pre>
+        `;
         progressList.appendChild(row);
         fileProgress.set(input, row);
         return row;
@@ -710,6 +913,7 @@
             r.querySelector('.error-detail').textContent = detail.trim();
             r.querySelector('.error-detail').style.display = 'block';
           }
+          r.classList.remove('active');
         }
         logs.push(evt);
       });
